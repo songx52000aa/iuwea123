@@ -143,8 +143,9 @@
         const { useState, useEffect, useRef } = React;
 
         // --- Data Definitions ---
-        const HOME_COORDS = [25.0558, 121.5365]; 
-        const USER_ADDRESS = "建國北路二段與合江街36巷口 (大同高中對面)";
+        // Updated: Moved HOME_COORDS slightly East (right) to the other side of Jianguo N Rd
+        const HOME_COORDS = [25.0558, 121.5374]; 
+        const USER_ADDRESS = "建國北路二段37號 (大同高中對面)";
 
         const BUS_STOPS = [
             {
@@ -250,7 +251,37 @@
             "518(民生幹線)": {
                 origin: "麥帥新城",
                 dest: "圓環",
-                stops: ["圓環", "馬偕醫院", "台北大學", "民生社區", "麥帥新城"]
+                stops: ["圓環", "馬偕醫院", "台北大學(台北校區)", "民生社區", "麥帥新城"]
+            },
+            "5": {
+                origin: "中和",
+                dest: "行天宮/民生社區",
+                stops: ["中和保養廠", "捷運永安市場站", "北一女中", "台北車站(忠孝)", "捷運松江南京站", "台北大學(台北校區)", "民生社區活動中心"]
+            },
+            "277": {
+                origin: "松德站",
+                dest: "榮總",
+                stops: ["松德站", "捷運永春站", "捷運市政府站", "博仁醫院", "台北大學(台北校區)", "捷運劍潭站", "士林官邸", "榮總"]
+            },
+            "505": {
+                origin: "撫遠街",
+                dest: "景美",
+                stops: ["撫遠街", "民生社區活動中心", "長庚醫院", "台北大學(台北校區)", "捷運松江南京站", "捷運東門站", "公館", "景美"]
+            },
+            "612": {
+                origin: "松德站",
+                dest: "大同之家",
+                stops: ["松德站", "捷運市政府站", "民生社區活動中心", "長庚醫院", "台北大學(台北校區)", "行天宮", "士林市場(捷運劍潭站)", "天母", "大同之家"]
+            },
+            "638": {
+                origin: "五股",
+                dest: "捷運南京復興站",
+                stops: ["五股", "明志科技大學", "捷運新莊站", "台北橋", "捷運民權西路站", "台北大學(台北校區)", "捷運南京復興站"]
+            },
+            "680": {
+                origin: "麟光新村",
+                dest: "天母",
+                stops: ["麟光新村", "捷運六張犁站", "捷運大安站", "捷運忠孝復興站", "長春國小", "台北大學(台北校區)", "市立美術館", "捷運劍潭站", "捷運芝山站", "天母"]
             }
         };
 
@@ -665,7 +696,7 @@
                                                 
                                                 <div className="mt-6 pt-4 border-t border-slate-100">
                                                     <a 
-                                                        href={`https://www.google.com/maps/dir/?api=1&destination=${selectedStop.coords[0]},${selectedStop.coords[1]}&travelmode=walking`} 
+                                                        href={`https://www.google.com/maps/dir/?api=1&origin=台北市中山區建國北路二段37號&destination=${selectedStop.coords[0]},${selectedStop.coords[1]}&travelmode=walking`} 
                                                         target="_blank"
                                                         className="block w-full text-center bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-lg transition-colors text-sm"
                                                     >
