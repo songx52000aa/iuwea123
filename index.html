@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -90,6 +89,51 @@
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-5px); }
         }
+
+        /* Route Timeline Styles */
+        .route-timeline {
+            position: relative;
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+        .route-timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 5px;
+            bottom: 5px;
+            width: 2px;
+            background-color: #cbd5e1;
+        }
+        .route-stop {
+            position: relative;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .route-stop::before {
+            content: '';
+            position: absolute;
+            left: -17px;
+            top: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #cbd5e1;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #cbd5e1;
+        }
+        .route-stop.active {
+            color: #2563eb;
+            font-weight: bold;
+        }
+        .route-stop.active::before {
+            background-color: #2563eb;
+            box-shadow: 0 0 0 2px #bfdbfe;
+            width: 10px;
+            height: 10px;
+            left: -18px;
+        }
     </style>
 </head>
 <body>
@@ -141,7 +185,151 @@
             }
         ];
 
-        // --- Gemini AI Integration ---
+        // Route Data for Visualization
+        const BUS_ROUTES_INFO = {
+            "307 (公車之王)": {
+                origin: "板橋",
+                dest: "撫遠街",
+                stops: ["板橋公車站", "積穗", "中和高中", "連城路", "華中橋", "果菜市場", "捷運西門站", "台北車站(忠孝)", "南京林森路口", "南京建國路口", "南京寧安街口", "南京三民", "撫遠街"]
+            },
+            "298": {
+                origin: "萬芳社區",
+                dest: "行天宮",
+                stops: ["萬芳社區", "捷運萬芳醫院站", "捷運辛亥站", "台大資訊大樓", "龍門國中", "大安國宅", "信義建國路口", "長春國小", "行天宮"]
+            },
+            "12": {
+                origin: "東園",
+                dest: "民生社區",
+                stops: ["東園", "青年公園", "捷運西門站", "台北車站(忠孝)", "長春國小", "長春敦化路口", "民生社區活動中心"]
+            },
+            "266(承德幹線)": {
+                origin: "新北投",
+                dest: "捷運市政府站",
+                stops: ["新北投", "捷運北投站", "捷運劍潭站", "捷運中山站", "南京建國路口", "捷運市政府站"]
+            },
+            "652": {
+                origin: "新莊高中",
+                dest: "內湖",
+                stops: ["新莊高中", "幸福路", "捷運台北橋站", "台北車站(忠孝)", "南京吉林路口", "南京建國路口", "南京敦化路口", "瑞光路", "內湖科學園區"]
+            },
+            "254": {
+                origin: "大鵬新城",
+                dest: "民生社區",
+                stops: ["大鵬新城", "捷運公館站", "台灣科技大學", "信義新生路口", "捷運松江南京站", "南京建國路口", "南京寧安街口", "長庚醫院", "民生社區活動中心"]
+            },
+            "282": {
+                origin: "動物園",
+                dest: "圓環",
+                stops: ["動物園", "捷運木柵站", "萬芳社區", "和平高中", "世貿中心(基隆路)", "南京建國路口", "捷運松江南京站", "圓環(南京)"]
+            },
+            "711": {
+                origin: "汐止",
+                dest: "圓環",
+                stops: ["汐止", "五堵火車站", "南港行政中心", "饒河街觀光夜市", "南京三民", "南京建國路口", "捷運松江南京站", "圓環(南京)"]
+            },
+            "棕9": {
+                origin: "東湖",
+                dest: "圓環",
+                stops: ["捷運東湖站", "捷運內湖站", "內湖高中", "南京舊宗路口", "南京公寓(捷運南京三民)", "南京建國路口", "捷運中山站", "圓環"]
+            },
+            "紅25": {
+                origin: "南港",
+                dest: "捷運中山站",
+                stops: ["南港", "松山車站", "饒河街觀光夜市", "南京三民", "南京敦化路口", "南京建國路口", "捷運松江南京站", "捷運中山站"]
+            },
+            "306": {
+                origin: "蘆洲",
+                dest: "凌雲五村",
+                stops: ["蘆洲總站", "三重", "捷運中山站", "南京建國路口", "饒河街觀光夜市", "南港"]
+            },
+            "292": {
+                origin: "二重",
+                dest: "捷運麟光站",
+                stops: ["三重", "捷運中山站", "南京建國路口", "捷運信義安和站", "捷運麟光站"]
+            },
+            "518(民生幹線)": {
+                origin: "麥帥新城",
+                dest: "圓環",
+                stops: ["圓環", "馬偕醫院", "台北大學", "民生社區", "麥帥新城"]
+            }
+        };
+
+        // --- Components ---
+
+        const BusRouteModal = ({ busName, currentStopName, onClose }) => {
+            // Find or generate mock data
+            let routeData = BUS_ROUTES_INFO[busName];
+            
+            // Fallback if data is missing
+            if (!routeData) {
+                routeData = {
+                    origin: "起點",
+                    dest: "終點",
+                    stops: ["起點站", "...", "前一站", currentStopName.split(" ")[0], "下一站", "...", "終點站"]
+                };
+            }
+
+            // Simple fuzzy match to highlight current stop
+            const isCurrent = (stop) => {
+                const simpleCurrent = currentStopName.split(" ")[0].replace("(", "").replace(")", "");
+                const simpleStop = stop.replace("(", "").replace(")", "");
+                return simpleCurrent.includes(simpleStop) || simpleStop.includes(simpleCurrent);
+            };
+
+            return (
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                        
+                        {/* Header */}
+                        <div className="bg-blue-600 p-4 text-white flex justify-between items-center shrink-0">
+                            <div>
+                                <h3 className="text-2xl font-bold flex items-center gap-2">
+                                    <i className="fas fa-bus"></i> {busName}
+                                </h3>
+                                <p className="text-blue-100 text-sm mt-1">
+                                    {routeData.origin} <i className="fas fa-arrow-right mx-1"></i> {routeData.dest}
+                                </p>
+                            </div>
+                            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        {/* Body - Route List */}
+                        <div className="p-6 overflow-y-auto custom-scroll">
+                            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">重點停靠站</h4>
+                            <div className="route-timeline">
+                                {routeData.stops.map((stop, idx) => {
+                                    const active = isCurrent(stop);
+                                    return (
+                                        <div key={idx} className={`route-stop ${active ? 'active' : ''}`}>
+                                            {stop} {active && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded ml-2">您在這裡</span>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="mt-6 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm border border-yellow-200 flex gap-2">
+                                <i className="fas fa-info-circle mt-0.5"></i>
+                                <div>此為主要站點示意圖，實際路線可能包含更多小站。建議查詢即時動態。</div>
+                            </div>
+                        </div>
+
+                        {/* Footer - Actions */}
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 shrink-0 grid grid-cols-1 gap-2">
+                            <a 
+                                href={`https://www.google.com/search?q=台北公車+${busName.split(' ')[0]}+路線圖`} 
+                                target="_blank"
+                                className="w-full py-3 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 hover:text-blue-600 transition-colors text-center flex items-center justify-center gap-2"
+                            >
+                                <i className="fab fa-google"></i> Google 搜尋路線
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const AIAssistant = ({ onClose }) => {
             const [query, setQuery] = useState("");
             const [history, setHistory] = useState([
@@ -278,7 +466,8 @@
         // --- Main App ---
         function App() {
             const [selectedStop, setSelectedStop] = useState(BUS_STOPS[0]); 
-            const [viewMode, setViewMode] = useState('list'); // 'list' or 'ai'
+            const [viewMode, setViewMode] = useState('list'); 
+            const [viewingBusRoute, setViewingBusRoute] = useState(null); // State for bus route modal
             const mapRef = useRef(null);
             const markersRef = useRef({});
 
@@ -318,21 +507,18 @@
                         
                         marker.on('click', () => {
                             setSelectedStop(stop);
-                            setViewMode('list'); // Switch back to list view on marker click
+                            setViewMode('list');
                             map.setView(stop.coords, 17, { animate: true });
                         });
 
                         markersRef.current[stop.id] = marker;
                     });
                     
-                    // --- FIX: 解決地圖只顯示一部分的問題 ---
-                    // 當地圖初始化完成後，強制重新計算一次大小
                     setTimeout(() => {
                         map.invalidateSize();
                     }, 500);
                 }
 
-                // 額外保險：監聽視窗大小改變，隨時校正地圖
                 const handleResize = () => {
                     if (mapRef.current) {
                         mapRef.current.invalidateSize();
@@ -347,7 +533,6 @@
                 setSelectedStop(stop);
                 setViewMode('list');
                 if (mapRef.current) {
-                    // 點擊站牌時，也順便校正一次，確保萬無一失
                     mapRef.current.invalidateSize(); 
                     mapRef.current.setView(stop.coords, 17, { animate: true });
                     if(markersRef.current[stop.id]) {
@@ -357,8 +542,17 @@
             };
 
             return (
-                <div className="flex flex-col h-screen md:flex-row">
+                <div className="flex flex-col h-screen md:flex-row relative">
                     
+                    {/* Modal Overlay for Bus Route */}
+                    {viewingBusRoute && (
+                        <BusRouteModal 
+                            busName={viewingBusRoute.busName} 
+                            currentStopName={viewingBusRoute.stopName}
+                            onClose={() => setViewingBusRoute(null)} 
+                        />
+                    )}
+
                     {/* Map Container */}
                     <div className="w-full h-[40vh] md:h-full md:w-2/3 relative order-1 md:order-2">
                         <div id="map"></div>
@@ -455,11 +649,16 @@
 
                                                 <div>
                                                     <h3 className="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wide">停靠公車路線</h3>
+                                                    <p className="text-xs text-slate-500 mb-2">點擊公車號碼可查看路線圖</p>
                                                     <div className="flex flex-wrap gap-2">
                                                         {selectedStop.buses.map((bus, idx) => (
-                                                            <span key={idx} className="px-3 py-1 bg-white border border-slate-200 rounded-md text-slate-700 text-sm font-mono shadow-sm hover:border-blue-300 hover:text-blue-600 transition-colors cursor-default">
+                                                            <button 
+                                                                key={idx} 
+                                                                onClick={() => setViewingBusRoute({ busName: bus, stopName: selectedStop.name })}
+                                                                className="px-3 py-1 bg-white border border-slate-200 rounded-md text-slate-700 text-sm font-mono shadow-sm hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer"
+                                                            >
                                                                 {bus}
-                                                            </span>
+                                                            </button>
                                                         ))}
                                                     </div>
                                                 </div>
