@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -323,13 +324,31 @@
 
                         markersRef.current[stop.id] = marker;
                     });
+                    
+                    // --- FIX: 解決地圖只顯示一部分的問題 ---
+                    // 當地圖初始化完成後，強制重新計算一次大小
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 500);
                 }
+
+                // 額外保險：監聽視窗大小改變，隨時校正地圖
+                const handleResize = () => {
+                    if (mapRef.current) {
+                        mapRef.current.invalidateSize();
+                    }
+                }
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+
             }, []);
 
             const handleSelectStop = (stop) => {
                 setSelectedStop(stop);
                 setViewMode('list');
                 if (mapRef.current) {
+                    // 點擊站牌時，也順便校正一次，確保萬無一失
+                    mapRef.current.invalidateSize(); 
                     mapRef.current.setView(stop.coords, 17, { animate: true });
                     if(markersRef.current[stop.id]) {
                         markersRef.current[stop.id].openPopup();
