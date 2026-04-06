@@ -1,0 +1,430 @@
+import React, { useState, useEffect } from 'react';
+import { Star, BookOpen, Home, ChevronRight, ChevronDown, CheckCircle, Volume2, Eye, EyeOff, Plane, Utensils, Building, Train, MessageCircle, ArrowLeft } from 'lucide-react';
+
+// --- 真實基礎資料庫：日文檢定 ---
+const baseWordDatabase = [
+  // N5
+  { type: 'vocab', level: 'N5', kanji: '食べる', kana: 'たべる', meaning: '吃', examples: [{ jp: '私は毎日りんごを食べる。', zh: '我每天吃蘋果。' }, { jp: '朝ご飯を食べる時間がありません。', zh: '沒有吃早餐的時間。' }] },
+  { type: 'vocab', level: 'N5', kanji: '行く', kana: 'いく', meaning: '去、前往', examples: [{ jp: '明日、東京へ行く。', zh: '明天要去東京。' }, { jp: '一緒に学校に行きましょう。', zh: '一起去學校吧。' }] },
+  { type: 'vocab', level: 'N5', kanji: '水', kana: 'みず', meaning: '水', examples: [{ jp: '水を一杯ください。', zh: '請給我一杯水。' }, { jp: 'この水はとても冷たいです。', zh: '這水非常冰涼。' }] },
+  // N4
+  { type: 'vocab', level: 'N4', kanji: '準備', kana: 'じゅんび', meaning: '準備', examples: [{ jp: '旅行の準備は終わりましたか。', zh: '旅行的準備結束了嗎？' }, { jp: '会議の準備をしています。', zh: '正在準備會議。' }] },
+  // N3
+  { type: 'vocab', level: 'N3', kanji: '努力', kana: 'どりょく', meaning: '努力', examples: [{ jp: '彼は目標のために努力している。', zh: '他為了目標正在努力。' }] },
+  // N2
+  { type: 'vocab', level: 'N2', kanji: '傾向', kana: 'けいこう', meaning: '傾向', examples: [{ jp: '最近の若者は車を買わない傾向にある。', zh: '最近的年輕人有不買車的傾向。' }] },
+  // N1
+  { type: 'vocab', level: 'N1', kanji: '妥協', kana: 'だきょう', meaning: '妥協', examples: [{ jp: '品質に関しては絶対に妥協しない。', zh: '關於品質絕對不妥協。' }] }
+];
+
+// --- 真實基礎資料庫：旅遊日常 (單字) ---
+const baseTravelDatabase = [
+  // 食物
+  { type: 'vocab', level: '食物', kanji: 'ラーメン', kana: 'らーめん', meaning: '拉麵', examples: [{ jp: 'とんこつラーメンを一つください。', zh: '請給我一碗豚骨拉麵。' }, { jp: 'ここのラーメンは美味しいです。', zh: '這裡的拉麵很好吃。' }] },
+  { type: 'vocab', level: '食物', kanji: '生ビール', kana: 'なまびーる', meaning: '生啤酒', examples: [{ jp: 'とりあえず生ビールをお願いします。', zh: '總之先來杯生啤酒吧。' }, { jp: '冷たいビールが飲みたい。', zh: '想喝冰涼的啤酒。' }] },
+  { type: 'vocab', level: '食物', kanji: 'お会計', kana: 'おかいけい', meaning: '結帳', examples: [{ jp: 'お会計をお願いします。', zh: '麻煩結帳。' }, { jp: '別々でお会計できますか。', zh: '可以分開結帳嗎？' }] },
+  // 設施
+  { type: 'vocab', level: '設施', kanji: 'トイレ', kana: 'といれ', meaning: '廁所、洗手間', examples: [{ jp: 'トイレはどこですか。', zh: '請問廁所在哪裡？' }, { jp: 'この奥にトイレがあります。', zh: '廁所在這最裡面。' }] },
+  { type: 'vocab', level: '設施', kanji: 'コンビニ', kana: 'こんびに', meaning: '便利商店', examples: [{ jp: '近くにコンビニはありますか。', zh: '附近有便利商店嗎？' }, { jp: 'コンビニでお弁当を買う。', zh: '在便利商店買便當。' }] },
+  { type: 'vocab', level: '設施', kanji: '薬局', kana: 'やっきょく', meaning: '藥局', examples: [{ jp: '薬局で風邪薬を買いました。', zh: '在藥局買了感冒藥。' }, { jp: 'あそこに薬局が見えます。', zh: '可以看到那裡有家藥局。' }] },
+  // 交通
+  { type: 'vocab', level: '交通', kanji: '駅', kana: 'えき', meaning: '車站', examples: [{ jp: '東京駅までどうやって行きますか。', zh: '請問到東京車站怎麼走？' }, { jp: '駅の前で待ち合わせしましょう。', zh: '在車站前面碰面吧。' }] },
+  { type: 'vocab', level: '交通', kanji: '新幹線', kana: 'しんかんせん', meaning: '新幹線', examples: [{ jp: '新幹線で京都へ行きます。', zh: '搭新幹線去京都。' }, { jp: '新幹線のチケットを予約する。', zh: '預約新幹線的車票。' }] },
+  { type: 'vocab', level: '交通', kanji: '切符', kana: 'きっぷ', meaning: '車票', examples: [{ jp: '切符をなくしてしまいました。', zh: '我不小心把車票弄丟了。' }, { jp: '券売機で切符を買う。', zh: '在售票機買車票。' }] }
+];
+
+// --- 真實基礎資料庫：日常對話 (問與答對話組) ---
+const baseConversationDatabase = [
+  {
+    type: 'conversation', level: '日常對話',
+    question: { speaker: '店員', kanji: '袋はお分けしますか？', kana: 'ふくろはおわけしますか？', meaning: '袋子需要幫您分開裝嗎？' },
+    answer: { speaker: '自己', kanji: '一緒で大丈夫です。', kana: 'いっしょでだいじょうぶです。', meaning: '裝一起就可以了。' }
+  },
+  {
+    type: 'conversation', level: '日常對話',
+    question: { speaker: '店員', kanji: 'ポイントカードはお持ちですか？', kana: 'ぽいんとかーどはおもちですか？', meaning: '請問有會員集點卡嗎？' },
+    answer: { speaker: '自己', kanji: '持っていません。', kana: 'もっていません。', meaning: '我沒有。' }
+  },
+  {
+    type: 'conversation', level: '日常對話',
+    question: { speaker: '自己', kanji: 'すみません、トイレはどこですか？', kana: 'すみません、といれはどこですか？', meaning: '不好意思，請問廁所在哪裡？' },
+    answer: { speaker: '店員', kanji: 'まっすぐ行って、右にあります。', kana: 'まっすぐいって、みぎにあります。', meaning: '直走之後，在您的右邊。' }
+  },
+  {
+    type: 'conversation', level: '日常對話',
+    question: { speaker: '店員', kanji: 'お支払いはどうされますか？', kana: 'おしはらいはどうされますか？', meaning: '請問您要用什麼方式付款？' },
+    answer: { speaker: '自己', kanji: 'クレジットカードでお願いします。', kana: 'くれじっとかーどでおねがいします。', meaning: '麻煩用信用卡付款。' }
+  },
+  {
+    type: 'conversation', level: '日常對話',
+    question: { speaker: '自己', kanji: 'これを試着してもいいですか？', kana: 'これをしちゃくしてもいいですか？', meaning: '請問這個可以試穿嗎？' },
+    answer: { speaker: '店員', kanji: 'はい、どうぞ。ご案内します。', kana: 'はい、どうぞ。ごあんないします。', meaning: '好的，請。我為您帶路。' }
+  }
+];
+
+// --- 自動擴充邏輯 ---
+const generateFullDatabase = () => {
+  const result = [];
+  ['N5', 'N4', 'N3', 'N2', 'N1'].forEach(level => {
+    const baseWords = baseWordDatabase.filter(w => w.level === level);
+    for (let i = 0; i < 300; i++) {
+      const base = baseWords[i % baseWords.length];
+      const isMock = i >= baseWords.length;
+      result.push({ ...base, id: `${level}-${i + 1}`, kanji: isMock ? `${base.kanji} ${i + 1}` : base.kanji, isMock });
+    }
+  });
+  ['食物', '設施', '交通'].forEach(level => {
+    const baseWords = baseTravelDatabase.filter(w => w.level === level);
+    for (let i = 0; i < 100; i++) {
+      const base = baseWords[i % baseWords.length];
+      const isMock = i >= baseWords.length;
+      result.push({ ...base, id: `travel-${level}-${i + 1}`, kanji: isMock ? `${base.kanji} ${i + 1}` : base.kanji, isMock });
+    }
+  });
+  for (let i = 0; i < 100; i++) {
+    const base = baseConversationDatabase[i % baseConversationDatabase.length];
+    const isMock = i >= baseConversationDatabase.length;
+    result.push({ 
+      ...base, 
+      id: `conv-${i + 1}`, 
+      question: { ...base.question, kanji: isMock ? `${base.question.kanji} (情境 ${i + 1})` : base.question.kanji },
+      isMock 
+    });
+  }
+  return result;
+};
+
+const fullWordDatabase = generateFullDatabase();
+
+const MaskedText = ({ text, isHidden, className }) => {
+  const [isRevealed, setIsRevealed] = useState(false);
+  useEffect(() => { setIsRevealed(false); }, [isHidden]);
+
+  return (
+    <span
+      onClick={() => isHidden && setIsRevealed(!isRevealed)}
+      className={`${className} transition-all duration-300 ${isHidden && !isRevealed ? 'blur-[6px] bg-slate-200/50 text-transparent select-none cursor-pointer rounded px-1' : ''}`}
+    >
+      {text}
+    </span>
+  );
+};
+
+export default function App() {
+  const [currentView, setCurrentView] = useState('main_menu');
+  const [favorites, setFavorites] = useState(() => {
+    try { const saved = localStorage.getItem('jlpt_favorites'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
+  });
+  const [learned, setLearned] = useState(() => {
+    try { const saved = localStorage.getItem('jlpt_learned'); return saved ? JSON.parse(saved) : []; } catch (e) { return []; }
+  });
+  
+  const [hideMeaning, setHideMeaning] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  useEffect(() => { localStorage.setItem('jlpt_favorites', JSON.stringify(favorites)); }, [favorites]);
+  useEffect(() => { localStorage.setItem('jlpt_learned', JSON.stringify(learned)); }, [learned]);
+  useEffect(() => { setVisibleCount(20); window.scrollTo(0, 0); }, [currentView]);
+
+  const toggleFavorite = (wordId) => setFavorites(prev => prev.includes(wordId) ? prev.filter(id => id !== wordId) : [...prev, wordId]);
+  const toggleLearned = (wordId) => setLearned(prev => prev.includes(wordId) ? prev.filter(id => id !== wordId) : [...prev, wordId]);
+
+  const playAudio = (text) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.85;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      alert('抱歉，不支援語音功能。');
+    }
+  };
+
+  const getDisplayWords = () => {
+    if (currentView === 'favorites') return fullWordDatabase.filter(word => favorites.includes(word.id));
+    return fullWordDatabase.filter(word => word.level === currentView);
+  };
+
+  const displayWords = getDisplayWords();
+  const visibleWords = displayWords.slice(0, visibleCount);
+  const hasMore = visibleCount < displayWords.length;
+  const handleLoadMore = () => setVisibleCount(prev => prev + 20);
+
+  // 根據目前視圖判斷標題
+  const getHeaderTitle = () => {
+    if (currentView === 'main_menu') return '日文達人';
+    if (currentView === 'jlpt_menu') return '日文檢定 (JLPT)';
+    if (currentView === 'travel_menu') return '旅遊日常';
+    if (currentView === 'favorites') return '我的單字庫';
+    return currentView;
+  };
+
+  // 處理返回邏輯
+  const handleBack = () => {
+    if (['N5','N4','N3','N2','N1'].includes(currentView)) setCurrentView('jlpt_menu');
+    else if (['食物','設施','交通','日常對話'].includes(currentView)) setCurrentView('travel_menu');
+    else setCurrentView('main_menu');
+  };
+
+  const ActionButtons = ({ word }) => (
+    <div className="flex gap-2 -mr-2 -mt-2">
+      <button onClick={() => toggleLearned(word.id)} className="p-2 hover:bg-slate-100 rounded-full transition-colors active:scale-95">
+        <CheckCircle size={28} className={`transition-all duration-300 ${learned.includes(word.id) ? 'text-emerald-500 scale-110' : 'text-slate-300'}`} fill={learned.includes(word.id) ? "#10b981" : "transparent"} color={learned.includes(word.id) ? "#ffffff" : "currentColor"} />
+      </button>
+      <button onClick={() => toggleFavorite(word.id)} className="p-2 hover:bg-slate-100 rounded-full transition-colors active:scale-95">
+        <Star size={28} className={`transition-all duration-300 ${favorites.includes(word.id) ? 'text-yellow-400 scale-110' : 'text-slate-300'}`} fill={favorites.includes(word.id) ? "#facc15" : "transparent"} />
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-24 pt-16 select-none sm:select-auto">
+      {/* --- App 頂部標題列 (Header) --- */}
+      <header className="bg-blue-600 text-white p-4 shadow-md fixed top-0 w-full z-20 h-16 flex items-center justify-between">
+        <div className="flex items-center w-1/4">
+          {/* 只有在子選單時顯示返回按鈕 */}
+          {currentView !== 'main_menu' && currentView !== 'favorites' && (
+            <button onClick={handleBack} className="p-2 -ml-2 rounded-full hover:bg-blue-700 transition active:scale-95">
+              <ArrowLeft size={24} />
+            </button>
+          )}
+        </div>
+        
+        <h1 className="font-bold text-lg text-center flex-1 tracking-wider truncate">
+          {getHeaderTitle()}
+        </h1>
+        
+        <div className="w-1/4 flex justify-end">
+          {/* 右上角留空或未來放設定按鈕 */}
+        </div>
+      </header>
+
+      <main className="max-w-md mx-auto p-4">
+        {/* --- 1. 首頁大分類 --- */}
+        {currentView === 'main_menu' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-center mt-4 mb-8">
+              <BookOpen size={48} className="mx-auto text-blue-500 mb-3" />
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">今天想學什麼？</h2>
+              <p className="text-slate-500 text-sm">選擇你想提升的能力方向。</p>
+            </div>
+            <div className="grid gap-6">
+              <button onClick={() => setCurrentView('jlpt_menu')} className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6 rounded-2xl shadow-lg active:scale-[0.98] transition-transform text-left relative overflow-hidden">
+                <BookOpen size={80} className="absolute -right-6 -bottom-6 opacity-20 text-white" />
+                <h3 className="font-black text-2xl mb-2">日文檢定 (JLPT)</h3>
+                <p className="text-blue-100 mb-4 text-sm">包含 N5 到 N1 必考核心單字，準備考試必備。</p>
+                <div className="bg-white/20 inline-block px-4 py-2 rounded-full text-xs font-bold backdrop-blur-sm">開始測驗 →</div>
+              </button>
+
+              <button onClick={() => setCurrentView('travel_menu')} className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-6 rounded-2xl shadow-lg active:scale-[0.98] transition-transform text-left relative overflow-hidden">
+                <Plane size={80} className="absolute -right-6 -bottom-6 opacity-20 text-white" />
+                <h3 className="font-black text-2xl mb-2">旅遊日常</h3>
+                <p className="text-emerald-100 mb-4 text-sm">收錄實用食物、設施單字，以及去日本玩必備的真實情境對話。</p>
+                <div className="bg-white/20 inline-block px-4 py-2 rounded-full text-xs font-bold backdrop-blur-sm">馬上出發 →</div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* --- 2. 日文檢定子選單 --- */}
+        {currentView === 'jlpt_menu' && (
+          <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+            {['N5', 'N4', 'N3', 'N2', 'N1'].map((level) => {
+              const learnedCount = learned.filter(id => id.startsWith(`${level}-`)).length;
+              const progress = Math.round((learnedCount / 300) * 100);
+              return (
+                <button key={level} onClick={() => setCurrentView(level)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 active:bg-slate-50 transition-all flex justify-between items-center group">
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="bg-blue-100 text-blue-700 font-black text-xl h-14 w-14 rounded-full flex items-center justify-center shrink-0">{level}</div>
+                    <div className="text-left flex-1">
+                      <h2 className="font-bold text-lg text-slate-800 mb-1">{level} 級單字</h2>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
+                        <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                      </div>
+                      <p className="text-xs text-slate-500">{learnedCount} / 300</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-slate-300 ml-2" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* --- 3. 旅遊日常子選單 --- */}
+        {currentView === 'travel_menu' && (
+          <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+            {[
+              { id: '食物', icon: <Utensils/>, color: 'text-orange-600', bg: 'bg-orange-100', count: 100, prefix: 'travel-食物-' },
+              { id: '設施', icon: <Building/>, color: 'text-purple-600', bg: 'bg-purple-100', count: 100, prefix: 'travel-設施-' },
+              { id: '交通', icon: <Train/>, color: 'text-sky-600', bg: 'bg-sky-100', count: 100, prefix: 'travel-交通-' },
+              { id: '日常對話', icon: <MessageCircle/>, color: 'text-rose-600', bg: 'bg-rose-100', count: 100, prefix: 'conv-' }
+            ].map((cat) => {
+              const learnedCount = learned.filter(id => id.startsWith(cat.prefix)).length;
+              const progress = Math.round((learnedCount / cat.count) * 100);
+              return (
+                <button key={cat.id} onClick={() => setCurrentView(cat.id)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 active:bg-slate-50 transition-all flex justify-between items-center group">
+                  <div className="flex items-center gap-4 w-full">
+                    <div className={`${cat.bg} ${cat.color} h-14 w-14 rounded-full flex items-center justify-center shrink-0`}>{cat.icon}</div>
+                    <div className="text-left flex-1">
+                      <h2 className="font-bold text-lg text-slate-800 mb-1">{cat.id}</h2>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
+                        <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                      </div>
+                      <p className="text-xs text-slate-500">{learnedCount} / {cat.count}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-slate-300 ml-2" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* --- 4. 學習列表視圖 (單字或對話) --- */}
+        {!['main_menu', 'jlpt_menu', 'travel_menu'].includes(currentView) && (
+          <div className="animate-in fade-in duration-300">
+            <div className="flex items-center justify-between mb-4 mt-2">
+              <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full">
+                共 {displayWords.length} 筆
+              </span>
+              <button onClick={() => setHideMeaning(!hideMeaning)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${hideMeaning ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 shadow-sm'}`}>
+                {hideMeaning ? <EyeOff size={16} /> : <Eye size={16} />}
+                <span>遮罩模式</span>
+              </button>
+            </div>
+
+            {displayWords.length === 0 ? (
+              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center mt-10">
+                <Star className="mx-auto text-slate-300 mb-4" size={56} />
+                <h3 className="text-lg font-bold text-slate-700 mb-2">單字庫空空如也</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">在學習時點擊卡片右上角的「星星」，就可以將不會的內容收藏到這裡隨時複習喔！</p>
+                <button onClick={() => setCurrentView('main_menu')} className="mt-6 bg-blue-50 text-blue-600 px-6 py-2 rounded-full font-bold text-sm">
+                  去背單字
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {visibleWords.map((word) => {
+                  
+                  // 日常對話卡片
+                  if (word.type === 'conversation') {
+                    return (
+                      <div key={word.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative border-t-4 border-t-rose-400">
+                        <div className="p-4 flex justify-between items-start">
+                          <div className="w-full pr-8">
+                            <div className="mb-4">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${word.question.speaker === '自己' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                                  {word.question.speaker}
+                                </span>
+                                <span className="text-slate-400 text-xs">{word.question.kana}</span>
+                              </div>
+                              <div className="flex items-start gap-2 mb-1">
+                                <div className="text-[17px] font-bold text-slate-800 leading-snug">{word.question.kanji}</div>
+                                <button onClick={() => playAudio(word.question.kanji)} className="p-1 text-blue-500 bg-blue-50 active:bg-blue-100 rounded-full shrink-0"><Volume2 size={16} /></button>
+                              </div>
+                              <div className="text-[14px] text-slate-500"><MaskedText text={word.question.meaning} isHidden={hideMeaning} /></div>
+                            </div>
+                            <div className="w-full h-px bg-slate-100 my-3"></div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${word.answer.speaker === '自己' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                                  {word.answer.speaker}
+                                </span>
+                                <span className="text-slate-400 text-xs">{word.answer.kana}</span>
+                              </div>
+                              <div className="flex items-start gap-2 mb-1">
+                                <div className="text-[17px] font-bold text-slate-800 leading-snug">{word.answer.kanji}</div>
+                                <button onClick={() => playAudio(word.answer.kanji)} className="p-1 text-blue-500 bg-blue-50 active:bg-blue-100 rounded-full shrink-0"><Volume2 size={16} /></button>
+                              </div>
+                              <div className="text-[14px] text-slate-500"><MaskedText text={word.answer.meaning} isHidden={hideMeaning} /></div>
+                            </div>
+                          </div>
+                          <div className="absolute top-3 right-3"><ActionButtons word={word} /></div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 標準單字卡片
+                  return (
+                    <div key={word.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                      <div className={`p-4 pb-3 border-b border-slate-100 flex justify-between items-start ${word.isMock ? 'bg-slate-50' : 'bg-gradient-to-br from-white to-blue-50/50'}`}>
+                        <div>
+                          <div className="text-blue-500 font-medium text-xs mb-1">{word.kana}</div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="text-3xl font-black text-slate-800">{word.kanji}</div>
+                            <button onClick={() => playAudio(word.kanji)} className="p-2 text-blue-500 active:bg-blue-100 rounded-full transition-colors">
+                              <Volume2 size={22} />
+                            </button>
+                          </div>
+                          <div className="text-base font-bold text-emerald-600">
+                            <MaskedText text={word.meaning} isHidden={hideMeaning} />
+                          </div>
+                        </div>
+                        <div className="absolute top-3 right-3"><ActionButtons word={word} /></div>
+                      </div>
+                      <div className="p-4 bg-slate-50/50">
+                        <div className="space-y-3">
+                          {word.examples.map((ex, idx) => (
+                            <div key={idx} className="relative pl-3 border-l-2 border-blue-200">
+                              <div className="flex items-start justify-between gap-1 mb-1">
+                                <p className="font-medium text-slate-700 text-[14px] leading-snug">{ex.jp}</p>
+                                <button onClick={() => playAudio(ex.jp)} className="p-1 text-slate-400 active:text-blue-500 active:bg-blue-50 rounded shrink-0">
+                                  <Volume2 size={16} />
+                                </button>
+                              </div>
+                              <p className="text-[13px] text-slate-500"><MaskedText text={ex.zh} isHidden={hideMeaning} /></p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {hasMore && (
+                  <button onClick={handleLoadMore} className="w-full py-3 mt-4 bg-blue-50 text-blue-600 font-bold rounded-xl active:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                    <span>載入更多 ({visibleCount} / {displayWords.length})</span>
+                    <ChevronDown size={18} />
+                  </button>
+                )}
+                {!hasMore && displayWords.length > 0 && <div className="text-center py-6 text-slate-400 text-sm">已經到底囉！🎉</div>}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* --- App 底部導覽列 (Bottom Tab Bar) --- */}
+      <nav className="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20 pb-safe">
+        <div className="max-w-md mx-auto flex justify-around">
+          <button 
+            onClick={() => setCurrentView('main_menu')} 
+            className={`flex flex-col items-center justify-center w-full py-3 ${['main_menu', 'jlpt_menu', 'travel_menu', 'N5', 'N4', 'N3', 'N2', 'N1', '食物', '設施', '交通', '日常對話'].includes(currentView) ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <Home size={24} className="mb-1" />
+            <span className="text-[10px] font-bold">探索學習</span>
+          </button>
+          
+          <button 
+            onClick={() => setCurrentView('favorites')} 
+            className={`flex flex-col items-center justify-center w-full py-3 relative ${currentView === 'favorites' ? 'text-yellow-500' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <div className="relative">
+              <Star size={24} className="mb-1" fill={currentView === 'favorites' ? "currentColor" : "none"} />
+              {favorites.length > 0 && (
+                <span className="absolute -top-1 -right-2 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+                  {favorites.length > 99 ? '99+' : favorites.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold">單字庫</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  );
+}
