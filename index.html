@@ -7,49 +7,28 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    /* 自定義滾動條與動畫 */
     body { -webkit-tap-highlight-color: transparent; }
     .fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* 遮罩模式樣式 */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .masked-text { transition: all 0.3s ease; }
-    .is-hidden:not(.revealed) {
-      filter: blur(6px);
-      background-color: rgba(226, 232, 240, 0.5);
-      color: transparent;
-      user-select: none;
-      cursor: pointer;
-      border-radius: 4px;
-      padding: 0 4px;
-    }
+    .is-hidden:not(.revealed) { filter: blur(6px); background-color: rgba(226, 232, 240, 0.5); color: transparent; user-select: none; cursor: pointer; border-radius: 4px; padding: 0 4px; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans pb-24 pt-16 select-none sm:select-auto">
 
-  <!-- 頂部標題列 -->
   <header class="bg-blue-600 text-white p-4 shadow-md fixed top-0 w-full z-20 h-16 flex items-center justify-between">
-    <div class="flex items-center w-1/4" id="header-left">
-      <!-- 返回按鈕會動態生成於此 -->
-    </div>
+    <div class="flex items-center w-1/4" id="header-left"></div>
     <h1 id="header-title" class="font-bold text-lg text-center flex-1 tracking-wider truncate">日文達人</h1>
     <div class="w-1/4 flex justify-end"></div>
   </header>
 
-  <!-- 主內容區 -->
   <main id="app-main" class="max-w-md mx-auto p-4"></main>
 
-  <!-- 底部導覽列 -->
   <nav class="fixed bottom-0 w-full bg-white border-t border-slate-200 z-20" style="padding-bottom: env(safe-area-inset-bottom);">
     <div class="max-w-md mx-auto flex justify-around">
       <button onclick="window.app.setView('main_menu')" id="nav-home" class="flex flex-col items-center justify-center w-full py-3 text-blue-600 transition-colors">
-        <i data-lucide="home" class="w-6 h-6 mb-1"></i>
-        <span class="text-[10px] font-bold">探索學習</span>
+        <i data-lucide="home" class="w-6 h-6 mb-1"></i><span class="text-[10px] font-bold">探索學習</span>
       </button>
-      
       <button onclick="window.app.setView('favorites')" id="nav-fav" class="flex flex-col items-center justify-center w-full py-3 relative text-slate-400 hover:text-slate-600 transition-colors">
         <div class="relative">
           <i data-lucide="star" id="nav-fav-icon" class="w-6 h-6 mb-1"></i>
@@ -61,67 +40,374 @@
   </nav>
 
   <script>
-    // --- 1. 真實基礎資料庫 ---
-    const baseWordDatabase = [
+    // --- 1. 真實資料庫 (已整合所有最新 N5 單字與 100 句對話) ---
+    const rawDatabase = [
+      // === JLPT N5 (最常考基礎動詞/名詞/形容詞) ===
       { type: 'vocab', level: 'N5', kanji: '食べる', kana: 'たべる', meaning: '吃', examples: [{ jp: '私は毎日りんごを食べる。', zh: '我每天吃蘋果。' }, { jp: '朝ご飯を食べる時間がありません。', zh: '沒有吃早餐的時間。' }] },
       { type: 'vocab', level: 'N5', kanji: '行く', kana: 'いく', meaning: '去、前往', examples: [{ jp: '明日、東京へ行く。', zh: '明天要去東京。' }, { jp: '一緒に学校に行きましょう。', zh: '一起去學校吧。' }] },
       { type: 'vocab', level: 'N5', kanji: '水', kana: 'みず', meaning: '水', examples: [{ jp: '水を一杯ください。', zh: '請給我一杯水。' }, { jp: 'この水はとても冷たいです。', zh: '這水非常冰涼。' }] },
-      { type: 'vocab', level: 'N4', kanji: '準備', kana: 'じゅんび', meaning: '準備', examples: [{ jp: '旅行の準備は終わりましたか。', zh: '旅行的準備結束了嗎？' }, { jp: '会議の準備をしています。', zh: '正在準備會議。' }] },
-      { type: 'vocab', level: 'N3', kanji: '努力', kana: 'どりょく', meaning: '努力', examples: [{ jp: '彼は目標のために努力している。', zh: '他為了目標正在努力。' }] },
-      { type: 'vocab', level: 'N2', kanji: '傾向', kana: 'けいこう', meaning: '傾向', examples: [{ jp: '最近の若者は車を買わない傾向にある。', zh: '最近的年輕人有不買車的傾向。' }] },
-      { type: 'vocab', level: 'N1', kanji: '妥協', kana: 'だきょう', meaning: '妥協', examples: [{ jp: '品質に関しては絶対に妥協しない。', zh: '關於品質絕對不妥協。' }] }
-    ];
+      { type: 'vocab', level: 'N5', kanji: '見る', kana: 'みる', meaning: '看', examples: [{ jp: '週末は映画を見ます。', zh: '週末要看電影。' }, { jp: 'あの鳥を見てください。', zh: '請看那隻鳥。' }] },
+      { type: 'vocab', level: 'N5', kanji: '聞く', kana: 'きく', meaning: '聽、問', examples: [{ jp: '音楽を聞くのが好きです。', zh: '我喜歡聽音樂。' }, { jp: '先生に質問を聞く。', zh: '向老師問問題。' }] },
+      { type: 'vocab', level: 'N5', kanji: '大きい', kana: 'おおきい', meaning: '大的', examples: [{ jp: 'このかばんはとても大きいです。', zh: '這個包包非常大。' }, { jp: '大きい声で話してください。', zh: '請大聲說話。' }] },
+      { type: 'vocab', level: 'N5', kanji: '買う', kana: 'かう', meaning: '買', examples: [{ jp: 'スーパーで野菜を買いました。', zh: '在超市買了蔬菜。' }, { jp: '新しい靴を買いたい。', zh: '想買新鞋子。' }] },
+      { type: 'vocab', level: 'N5', kanji: '新しい', kana: 'あたらしい', meaning: '新的', examples: [{ jp: '新しい車を買いました。', zh: '買了新車。' }, { jp: '新年の目標を立てる。', zh: '制定新年的目標。' }] },
+      { type: 'vocab', level: 'N5', kanji: '学生', kana: 'がくせい', meaning: '學生', examples: [{ jp: '私は大学生です。', zh: '我是大學生。' }, { jp: '学生の時はよく遊びました。', zh: '當學生的時候經常玩。' }] },
+      { type: 'vocab', level: 'N5', kanji: '本', kana: 'ほん', meaning: '書本', examples: [{ jp: '図書館で本を借ります。', zh: '在圖書館借書。' }, { jp: 'この本は面白いです。', zh: '這本書很有趣。' }] },
+      { type: 'vocab', level: 'N5', kanji: '話す', kana: 'はなす', meaning: '說話、講話', examples: [{ jp: '日本語を話すことができますか。', zh: '你會說日文嗎？' }, { jp: '友達と楽しく話す。', zh: '和朋友開心地聊天。' }] },
+      { type: 'vocab', level: 'N5', kanji: '安い', kana: 'やすい', meaning: '便宜的', examples: [{ jp: 'この店の服はとても安い。', zh: '這家店的衣服很便宜。' }, { jp: '安くて美味しい食堂を探す。', zh: '尋找便宜又好吃的餐館。' }] },
+      { type: 'vocab', level: 'N5', kanji: '時間', kana: 'じかん', meaning: '時間', examples: [{ jp: 'もう時間がありません。', zh: '已經沒有時間了。' }, { jp: '少し時間をください。', zh: '請給我一點時間。' }] },
+      { type: 'vocab', level: 'N5', kanji: '天気', kana: 'てんき', meaning: '天氣', examples: [{ jp: '明日は天気がいいそうです。', zh: '聽說明天天氣很好。' }, { jp: '天気が悪いので出かけません。', zh: '天氣不好所以不出門。' }] },
 
-    const baseTravelDatabase = [
+      // === JLPT N5 (方位/物品/日常名詞) ===
+      { type: 'vocab', level: 'N5', kanji: '後ろ', kana: 'うしろ', meaning: '後面', examples: [{ jp: '私の後ろに立たないでください。', zh: '請不要站在我後面。' }, { jp: '駅の後ろに公園があります。', zh: '車站後面有公園。' }] },
+      { type: 'vocab', level: 'N5', kanji: '上', kana: 'うえ', meaning: '上面', examples: [{ jp: '机の上に本があります。', zh: '桌子上有書。' }, { jp: '上を見てください。', zh: '請往上看。' }] },
+      { type: 'vocab', level: 'N5', kanji: '下', kana: 'した', meaning: '下面', examples: [{ jp: '椅子の下に猫がいます。', zh: '椅子下面有貓。' }, { jp: '下に落ちていますよ。', zh: '掉在下面喔。' }] },
+      { type: 'vocab', level: 'N5', kanji: '中', kana: 'なか', meaning: '裡面', examples: [{ jp: '鞄の中に財布があります。', zh: '包包裡面有錢包。' }, { jp: '箱の中は何ですか。', zh: '箱子裡面是什麼？' }] },
+      { type: 'vocab', level: 'N5', kanji: '外', kana: 'そと', meaning: '外面', examples: [{ jp: '外はとても寒いです。', zh: '外面非常冷。' }, { jp: '外で遊びましょう。', zh: '在外面玩吧。' }] },
+      { type: 'vocab', level: 'N5', kanji: '隣', kana: 'となり', meaning: '旁邊', examples: [{ jp: '私の隣に座ってください。', zh: '請坐在我旁邊。' }, { jp: '隣の部屋がうるさいです。', zh: '隔壁房間很吵。' }] },
+      { type: 'vocab', level: 'N5', kanji: '近く', kana: 'ちかく', meaning: '附近', examples: [{ jp: '家の近くにコンビニがあります。', zh: '家附近有便利商店。' }, { jp: '近くのレストランで食べます。', zh: '在附近的餐廳吃飯。' }] },
+      { type: 'vocab', level: 'N5', kanji: '銀行', kana: 'ぎんこう', meaning: '銀行', examples: [{ jp: '銀行でお金を下ろします。', zh: '在銀行領錢。' }, { jp: '銀行は3時に閉まります。', zh: '銀行3點關門。' }] },
+      { type: 'vocab', level: 'N5', kanji: '郵便局', kana: 'ゆうびんきょく', meaning: '郵局', examples: [{ jp: '郵便局で切手を買います。', zh: '在郵局買郵票。' }, { jp: 'この手紙を郵便局へ持っていきます。', zh: '把這封信拿去郵局。' }] },
+      { type: 'vocab', level: 'N5', kanji: '公園', kana: 'こうえん', meaning: '公園', examples: [{ jp: '公園で散歩します。', zh: '在公園散步。' }, { jp: '子供たちが公園で遊んでいます。', zh: '孩子們在公園裡玩耍。' }] },
+      { type: 'vocab', level: 'N5', kanji: '映画', kana: 'えいが', meaning: '電影', examples: [{ jp: '週末は映画を見に行きます。', zh: '週末去看電影。' }, { jp: 'この映画はとても面白いです。', zh: '這部電影非常有趣。' }] },
+      { type: 'vocab', level: 'N5', kanji: '音楽', kana: 'おんがく', meaning: '音樂', examples: [{ jp: '音楽を聞くのが好きです。', zh: '我喜歡聽音樂。' }, { jp: 'どんな音楽が好きですか。', zh: '你喜歡什麼樣的音樂？' }] },
+      { type: 'vocab', level: 'N5', kanji: '歌', kana: 'うた', meaning: '歌曲', examples: [{ jp: '日本の歌を歌います。', zh: '唱日本的歌。' }, { jp: 'この歌はとても有名です。', zh: '這首歌非常有名。' }] },
+      { type: 'vocab', level: 'N5', kanji: '手紙', kana: 'てがみ', meaning: '信', examples: [{ jp: '母に手紙を書きました。', zh: '寫信給媽媽了。' }, { jp: '友達から手紙が来ました。', zh: '收到了朋友寄來的信。' }] },
+      { type: 'vocab', level: 'N5', kanji: '写真', kana: 'しゃしん', meaning: '照片', examples: [{ jp: '一緒に写真を撮りましょう。', zh: '一起拍照吧。' }, { jp: 'これは家族の写真です。', zh: '這是家人的照片。' }] },
+      { type: 'vocab', level: 'N5', kanji: '花', kana: 'はな', meaning: '花', examples: [{ jp: '綺麗な花が咲いています。', zh: '開著漂亮的花。' }, { jp: '誕生日に花をあげます。', zh: '生日時送花。' }] },
+      { type: 'vocab', level: 'N5', kanji: '犬', kana: 'いぬ', meaning: '狗', examples: [{ jp: '私は犬が好きです。', zh: '我喜歡狗。' }, { jp: '白い犬を飼っています。', zh: '養了一隻白狗。' }] },
+      { type: 'vocab', level: 'N5', kanji: '猫', kana: 'ねこ', meaning: '貓', examples: [{ jp: 'あそこに黒い猫がいます。', zh: '那邊有一隻黑貓。' }, { jp: '猫が寝ています。', zh: '貓在睡覺。' }] },
+      { type: 'vocab', level: 'N5', kanji: '鳥', kana: 'とり', meaning: '鳥', examples: [{ jp: '空に鳥が飛んでいます。', zh: '鳥在天空中飛。' }, { jp: '鳥の鳴き声が聞こえます。', zh: '聽見鳥的叫聲。' }] },
+      { type: 'vocab', level: 'N5', kanji: '肉', kana: 'にく', meaning: '肉', examples: [{ jp: 'スーパーで肉を買います。', zh: '在超市買肉。' }, { jp: '私は肉より魚が好きです。', zh: '比起肉我更喜歡魚。' }] },
+      { type: 'vocab', level: 'N5', kanji: '魚', kana: 'さかな', meaning: '魚', examples: [{ jp: '美味しい魚を食べました。', zh: '吃了好吃的魚。' }, { jp: '川に魚がたくさんいます。', zh: '河裡有很多魚。' }] },
+      { type: 'vocab', level: 'N5', kanji: '野菜', kana: 'やさい', meaning: '蔬菜', examples: [{ jp: '野菜をたくさん食べてください。', zh: '請多吃點蔬菜。' }, { jp: 'この野菜は安いです。', zh: '這蔬菜很便宜。' }] },
+      { type: 'vocab', level: 'N5', kanji: '果物', kana: 'くだもの', meaning: '水果', examples: [{ jp: '食後に果物を食べます。', zh: '飯後吃水果。' }, { jp: 'どんな果物が好きですか。', zh: '喜歡什麼樣的水果？' }] },
+      { type: 'vocab', level: 'N5', kanji: 'お茶', kana: 'おちゃ', meaning: '茶', examples: [{ jp: '温かいお茶をどうぞ。', zh: '請用熱茶。' }, { jp: 'お茶を飲みながら話しましょう。', zh: '邊喝茶邊聊天吧。' }] },
+      { type: 'vocab', level: 'N5', kanji: 'ご飯', kana: 'ごはん', meaning: '飯、餐', examples: [{ jp: '朝ご飯を食べましたか。', zh: '吃早餐了嗎？' }, { jp: 'ご飯をもう一杯お願いします。', zh: '麻煩再來一碗飯。' }] },
+      { type: 'vocab', level: 'N5', kanji: 'パン', kana: 'ぱん', meaning: '麵包', examples: [{ jp: '毎朝パンを食べます。', zh: '每天早上吃麵包。' }, { jp: 'このパンはとても美味しいです。', zh: '這個麵包很好吃。' }] },
+      { type: 'vocab', level: 'N5', kanji: '卵', kana: 'たまご', meaning: '蛋', examples: [{ jp: '卵を二つ買いました。', zh: '買了兩顆蛋。' }, { jp: '卵焼きを作ります。', zh: '做玉子燒。' }] },
+      { type: 'vocab', level: 'N5', kanji: '牛乳', kana: 'ぎゅうにゅう', meaning: '牛奶', examples: [{ jp: '毎朝牛乳を飲みます。', zh: '每天早上喝牛奶。' }, { jp: '牛乳を買ってきてください。', zh: '請去買牛奶回來。' }] },
+      { type: 'vocab', level: 'N5', kanji: '服', kana: 'ふく', meaning: '衣服', examples: [{ jp: '新しい服が欲しいです。', zh: '想要新衣服。' }, { jp: '服を洗います。', zh: '洗衣服。' }] },
+      { type: 'vocab', level: 'N5', kanji: '靴', kana: 'くつ', meaning: '鞋子', examples: [{ jp: 'この靴は歩きやすいです。', zh: '這雙鞋很好走。' }, { jp: '靴を脱いで入ってください。', zh: '請脫鞋進入。' }] },
+      { type: 'vocab', level: 'N5', kanji: '鞄', kana: 'かばん', meaning: '包包', examples: [{ jp: 'その鞄はいくらですか。', zh: '那個包包多少錢？' }, { jp: '鞄の中に鍵があります。', zh: '包包裡有鑰匙。' }] },
+      { type: 'vocab', level: 'N5', kanji: '眼鏡', kana: 'めがね', meaning: '眼鏡', examples: [{ jp: '眼鏡をかけて本を読みます。', zh: '戴著眼鏡看書。' }, { jp: '眼鏡をどこに置きましたか。', zh: '眼鏡放在哪裡了？' }] },
+      { type: 'vocab', level: 'N5', kanji: '帽子', kana: 'ぼうし', meaning: '帽子', examples: [{ jp: '外は暑いから帽子をかぶります。', zh: '外面很熱所以戴帽子。' }, { jp: 'その帽子は可愛いですね。', zh: '那頂帽子很可愛呢。' }] },
+      { type: 'vocab', level: 'N5', kanji: '傘', kana: 'かさ', meaning: '雨傘', examples: [{ jp: '雨が降っているので傘をさします。', zh: '下雨了所以撐傘。' }, { jp: '電車に傘を忘れました。', zh: '把傘忘在電車上了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '時計', kana: 'とけい', meaning: '時鐘、手錶', examples: [{ jp: '時計を見てください。', zh: '請看時鐘。' }, { jp: '新しい時計を買いました。', zh: '買了新手錶。' }] },
+      { type: 'vocab', level: 'N5', kanji: '鉛筆', kana: 'えんぴつ', meaning: '鉛筆', examples: [{ jp: '鉛筆で書いてください。', zh: '請用鉛筆寫。' }, { jp: '鉛筆を一本貸してください。', zh: '請借我一支鉛筆。' }] },
+      { type: 'vocab', level: 'N5', kanji: '辞書', kana: 'じしょ', meaning: '字典', examples: [{ jp: '分からない言葉は辞書で引きます。', zh: '不懂的詞彙查字典。' }, { jp: '日本語の辞書を買いました。', zh: '買了日文字典。' }] },
+      { type: 'vocab', level: 'N5', kanji: '雑誌', kana: 'ざっし', meaning: '雜誌', examples: [{ jp: 'コンビニで雑誌を買う。', zh: '在便利商店買雜誌。' }, { jp: 'この雑誌は面白いです。', zh: '這本雜誌很有趣。' }] },
+      { type: 'vocab', level: 'N5', kanji: '新聞', kana: 'しんぶん', meaning: '報紙', examples: [{ jp: '毎朝新聞を読みます。', zh: '每天早上讀報紙。' }, { jp: '新聞に記事が載っています。', zh: '報紙上登了報導。' }] },
+      { type: 'vocab', level: 'N5', kanji: '英語', kana: 'えいご', meaning: '英文', examples: [{ jp: '英語を勉強しています。', zh: '正在學英文。' }, { jp: '彼は英語が上手です。', zh: '他英文很好。' }] },
+      { type: 'vocab', level: 'N5', kanji: '日本語', kana: 'にほんご', meaning: '日文', examples: [{ jp: '日本語は少し難しいです。', zh: '日文稍微有點難。' }, { jp: '日本語で話してください。', zh: '請用日文說話。' }] },
+      { type: 'vocab', level: 'N5', kanji: '言葉', kana: 'ことば', meaning: '詞彙、語言', examples: [{ jp: '新しい言葉を覚える。', zh: '記新的詞彙。' }, { jp: '言葉の意味を調べる。', zh: '查詞彙的意思。' }] },
+      { type: 'vocab', level: 'N5', kanji: '意味', kana: 'いみ', meaning: '意思', examples: [{ jp: 'この漢字の意味は何ですか。', zh: '這個漢字的意思是什麼？' }, { jp: '意味がよく分かりません。', zh: '我不太懂意思。' }] },
+      { type: 'vocab', level: 'N5', kanji: '質問', kana: 'しつもん', meaning: '問題(提問)', examples: [{ jp: '先生に質問をします。', zh: '向老師提問。' }, { jp: '質問はありますか。', zh: '有什麼問題嗎？' }] },
+      { type: 'vocab', level: 'N5', kanji: '答え', kana: 'こたえ', meaning: '答案', examples: [{ jp: '答えを教えてください。', zh: '請告訴我答案。' }, { jp: 'その答えは違います。', zh: '那個答案是錯的。' }] },
+      { type: 'vocab', level: 'N5', kanji: '問題', kana: 'もんだい', meaning: '問題(題目)', examples: [{ jp: '次の問題を解いてください。', zh: '請解下一道問題。' }, { jp: 'それは大きな問題です。', zh: '那是個大問題。' }] },
+      { type: 'vocab', level: 'N5', kanji: '宿題', kana: 'しゅくだい', meaning: '作業', examples: [{ jp: '今日の宿題は多いです。', zh: '今天的作業很多。' }, { jp: '宿題を忘れました。', zh: '忘記寫作業了。' }] },
+      { type: 'vocab', level: 'N5', kanji: 'テスト', kana: 'てすと', meaning: '考試', examples: [{ jp: '明日は漢字のテストがあります。', zh: '明天有漢字考試。' }, { jp: 'テストは難しかったです。', zh: '考試很難。' }] },
+      { type: 'vocab', level: 'N5', kanji: '授業', kana: 'じゅぎょう', meaning: '課程', examples: [{ jp: '9時から授業が始まります。', zh: '9點開始上課。' }, { jp: '今日の授業は面白いです。', zh: '今天的課很有趣。' }] },
+      { type: 'vocab', level: 'N5', kanji: '教室', kana: 'きょうしつ', meaning: '教室', examples: [{ jp: '教室で勉強します。', zh: '在教室唸書。' }, { jp: '教室に誰もいません。', zh: '教室裡一個人都沒有。' }] },
+      
+      // === JLPT N5 (自然/親屬/身體/時間/基本動詞) ===
+      { type: 'vocab', level: 'N5', kanji: '山', kana: 'やま', meaning: '山', examples: [{ jp: '週末、山に登ります。', zh: '週末要去爬山。' }, { jp: '富士山はとても高いです。', zh: '富士山非常高。' }] },
+      { type: 'vocab', level: 'N5', kanji: '川', kana: 'かわ', meaning: '河川', examples: [{ jp: '川で魚を釣ります。', zh: '在河裡釣魚。' }, { jp: 'この川はとてもきれいです。', zh: '這條河川非常乾淨。' }] },
+      { type: 'vocab', level: 'N5', kanji: '海', kana: 'うみ', meaning: '海', examples: [{ jp: '夏は海に行きたいです。', zh: '夏天想去海邊。' }, { jp: '海で泳ぐのが好きです。', zh: '喜歡在海裡游泳。' }] },
+      { type: 'vocab', level: 'N5', kanji: '空', kana: 'そら', meaning: '天空', examples: [{ jp: '空がとても青いです。', zh: '天空非常藍。' }, { jp: '空に鳥が飛んでいます。', zh: '鳥在天空中飛翔。' }] },
+      { type: 'vocab', level: 'N5', kanji: '雨', kana: 'あめ', meaning: '雨', examples: [{ jp: '今日は雨が降っています。', zh: '今天正在下雨。' }, { jp: '雨の日は家にいます。', zh: '下雨天就待在家裡。' }] },
+      { type: 'vocab', level: 'N5', kanji: '雪', kana: 'ゆき', meaning: '雪', examples: [{ jp: '雪がたくさん降りました。', zh: '下了很多雪。' }, { jp: '子供たちが雪で遊んでいます。', zh: '孩子們在玩雪。' }] },
+      { type: 'vocab', level: 'N5', kanji: '風', kana: 'かぜ', meaning: '風', examples: [{ jp: '今日は風が強いです。', zh: '今天風很大。' }, { jp: '冷たい風が吹いています。', zh: '吹著冷風。' }] },
+      { type: 'vocab', level: 'N5', kanji: '春', kana: 'はる', meaning: '春天', examples: [{ jp: '春は花が咲きます。', zh: '春天會開花。' }, { jp: '春はとても暖かいです。', zh: '春天非常溫暖。' }] },
+      { type: 'vocab', level: 'N5', kanji: '夏', kana: 'なつ', meaning: '夏天', examples: [{ jp: '日本の夏は暑いです。', zh: '日本的夏天很熱。' }, { jp: '夏休みに海へ行きます。', zh: '暑假去海邊。' }] },
+      { type: 'vocab', level: 'N5', kanji: '秋', kana: 'あき', meaning: '秋天', examples: [{ jp: '秋は涼しいです。', zh: '秋天很涼爽。' }, { jp: '秋は紅葉がきれいです。', zh: '秋天的楓葉很漂亮。' }] },
+      { type: 'vocab', level: 'N5', kanji: '冬', kana: 'ふゆ', meaning: '冬天', examples: [{ jp: '冬は雪が降ります。', zh: '冬天會下雪。' }, { jp: '冬はとても寒いです。', zh: '冬天非常冷。' }] },
+      { type: 'vocab', level: 'N5', kanji: '父', kana: 'ちち', meaning: '父親', examples: [{ jp: '父は会社員です。', zh: '我父親是公司職員。' }, { jp: '昨日、父と話しました。', zh: '昨天和父親說話了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '母', kana: 'はは', meaning: '母親', examples: [{ jp: '母は料理が上手です。', zh: '我母親很會做菜。' }, { jp: '母にプレゼントを買いました。', zh: '買了禮物給母親。' }] },
+      { type: 'vocab', level: 'N5', kanji: '兄', kana: 'あに', meaning: '哥哥', examples: [{ jp: '兄は東京に住んでいます。', zh: '我哥哥住在東京。' }, { jp: '兄と一緒にゲームをします。', zh: '和哥哥一起玩遊戲。' }] },
+      { type: 'vocab', level: 'N5', kanji: '姉', kana: 'あね', meaning: '姊姊', examples: [{ jp: '姉は大学生です。', zh: '我姊姊是大學生。' }, { jp: '姉の服を借ります。', zh: '借姊姊的衣服。' }] },
+      { type: 'vocab', level: 'N5', kanji: '弟', kana: 'おとうと', meaning: '弟弟', examples: [{ jp: '弟はまだ子供です。', zh: '弟弟還是個小孩。' }, { jp: '弟と公園で遊びます。', zh: '和弟弟在公園玩耍。' }] },
+      { type: 'vocab', level: 'N5', kanji: '妹', kana: 'いもうと', meaning: '妹妹', examples: [{ jp: '妹は歌が好きです。', zh: '妹妹喜歡唱歌。' }, { jp: '妹と一緒に買い物に行きます。', zh: '和妹妹一起去買東西。' }] },
+      { type: 'vocab', level: 'N5', kanji: '手', kana: 'て', meaning: '手', examples: [{ jp: '手を洗ってください。', zh: '請洗手。' }, { jp: '右手を上げてください。', zh: '請舉起右手。' }] },
+      { type: 'vocab', level: 'N5', kanji: '足', kana: 'あし', meaning: '腳', examples: [{ jp: '足が痛いです。', zh: '腳很痛。' }, { jp: '足が速いです。', zh: '跑得很快（腳程快）。' }] },
+      { type: 'vocab', level: 'N5', kanji: '目', kana: 'め', meaning: '眼睛', examples: [{ jp: '目を閉じてください。', zh: '請閉上眼睛。' }, { jp: '彼女は目が大きいです。', zh: '她的眼睛很大。' }] },
+      { type: 'vocab', level: 'N5', kanji: '耳', kana: 'みみ', meaning: '耳朵', examples: [{ jp: '耳が痛いです。', zh: '耳朵痛。' }, { jp: 'ウサギは耳が長いです。', zh: '兔子的耳朵很長。' }] },
+      { type: 'vocab', level: 'N5', kanji: '口', kana: 'くち', meaning: '嘴巴', examples: [{ jp: '口を開けてください。', zh: '請張開嘴巴。' }, { jp: '彼は口が上手いです。', zh: '他很會說話。' }] },
+      { type: 'vocab', level: 'N5', kanji: '体', kana: 'からだ', meaning: '身體', examples: [{ jp: '体の調子が悪いです。', zh: '身體狀況不好。' }, { jp: '体に気をつけてください。', zh: '請保重身體。' }] },
+      { type: 'vocab', level: 'N5', kanji: '医者', kana: 'いしゃ', meaning: '醫生', examples: [{ jp: '将来、医者になりたいです。', zh: '將來想當醫生。' }, { jp: '医者に診てもらいます。', zh: '給醫生看病。' }] },
+      { type: 'vocab', level: 'N5', kanji: '薬', kana: 'くすり', meaning: '藥', examples: [{ jp: '薬を飲んでください。', zh: '請吃藥。' }, { jp: 'この薬はよく効きます。', zh: '這個藥很有效。' }] },
+      { type: 'vocab', level: 'N5', kanji: '今年', kana: 'ことし', meaning: '今年', examples: [{ jp: '今年は日本へ行きます。', zh: '今年要去日本。' }, { jp: '今年は雪が少ないです。', zh: '今年雪很少。' }] },
+      { type: 'vocab', level: 'N5', kanji: '来年', kana: 'らいねん', meaning: '明年', examples: [{ jp: '来年、大学に入ります。', zh: '明年要進大學。' }, { jp: '来年の予定を立てます。', zh: '制定明年的計畫。' }] },
+      { type: 'vocab', level: 'N5', kanji: '去年', kana: 'きょねん', meaning: '去年', examples: [{ jp: '去年、カメラを買いました。', zh: '去年買了相機。' }, { jp: '去年の夏は暑かったです。', zh: '去年的夏天很熱。' }] },
+      { type: 'vocab', level: 'N5', kanji: '今週', kana: 'こんしゅう', meaning: '這週', examples: [{ jp: '今週はとても忙しいです。', zh: '這個禮拜非常忙。' }, { jp: '今週の土曜日に会いましょう。', zh: '這個禮拜六見面吧。' }] },
+      { type: 'vocab', level: 'N5', kanji: '来週', kana: 'らいしゅう', meaning: '下週', examples: [{ jp: '来週テストがあります。', zh: '下個禮拜有考試。' }, { jp: '来週は暇です。', zh: '下個禮拜有空。' }] },
+      { type: 'vocab', level: 'N5', kanji: '先週', kana: 'せんしゅう', meaning: '上週', examples: [{ jp: '先週、風邪を引きました。', zh: '上個禮拜感冒了。' }, { jp: '先週の仕事は大変でした。', zh: '上個禮拜的工作很辛苦。' }] },
+      { type: 'vocab', level: 'N5', kanji: '今月', kana: 'こんげつ', meaning: '這個月', examples: [{ jp: '今月は休みが多いです。', zh: '這個月假很多。' }, { jp: '今月中に終わらせます。', zh: '會在這個月內完成。' }] },
+      { type: 'vocab', level: 'N5', kanji: '来月', kana: 'らいげつ', meaning: '下個月', examples: [{ jp: '来月、国へ帰ります。', zh: '下個月回國。' }, { jp: '来月の予定を教えてください。', zh: '請告訴我下個月的行程。' }] },
+      { type: 'vocab', level: 'N5', kanji: '先月', kana: 'せんげつ', meaning: '上個月', examples: [{ jp: '先月、日本に来ました。', zh: '上個月來到了日本。' }, { jp: '先月の給料をもらいました。', zh: '拿到了上個月的薪水。' }] },
+      { type: 'vocab', level: 'N5', kanji: '赤い', kana: 'あかい', meaning: '紅色的', examples: [{ jp: '赤いリンゴを買いました。', zh: '買了紅色的蘋果。' }, { jp: 'あの赤い車は彼のです。', zh: '那輛紅色的車是他的。' }] },
+      { type: 'vocab', level: 'N5', kanji: '青い', kana: 'あおい', meaning: '藍色的', examples: [{ jp: '青い空がきれいです。', zh: '藍色的天空很漂亮。' }, { jp: '青いシャツを着ています。', zh: '穿著藍色的襯衫。' }] },
+      { type: 'vocab', level: 'N5', kanji: '白い', kana: 'しろい', meaning: '白色的', examples: [{ jp: '白い雪が降っています。', zh: '正在下白雪。' }, { jp: '白い靴を買いたいです。', zh: '想買白色的鞋子。' }] },
+      { type: 'vocab', level: 'N5', kanji: '黒い', kana: 'くろい', meaning: '黑色的', examples: [{ jp: '黒い猫がいます。', zh: '有一隻黑貓。' }, { jp: 'あの黒いカバンは誰のですか。', zh: '那個黑色的包包是誰的？' }] },
+      { type: 'vocab', level: 'N5', kanji: '黄色い', kana: 'きいろい', meaning: '黃色的', examples: [{ jp: '黄色い花が咲きました。', zh: '開了黃色的花。' }, { jp: '黄色い帽子をかぶります。', zh: '戴上黃色的帽子。' }] },
+      { type: 'vocab', level: 'N5', kanji: '茶色', kana: 'ちゃいろ', meaning: '咖啡色', examples: [{ jp: '茶色の犬を飼っています。', zh: '養了一隻咖啡色的狗。' }, { jp: 'この靴は茶色です。', zh: '這雙鞋是咖啡色的。' }] },
+      { type: 'vocab', level: 'N5', kanji: '誰', kana: 'だれ', meaning: '誰', examples: [{ jp: 'あの人は誰ですか。', zh: '那個人是誰？' }, { jp: '誰と一緒に行きますか。', zh: '要和誰一起去？' }] },
+      { type: 'vocab', level: 'N5', kanji: '何', kana: 'なに', meaning: '什麼', examples: [{ jp: '鞄の中に何がありますか。', zh: '包包裡面有什麼？' }, { jp: '朝ご飯は何を食べましたか。', zh: '早餐吃了什麼？' }] },
+      { type: 'vocab', level: 'N5', kanji: 'どこ', kana: 'どこ', meaning: '哪裡', examples: [{ jp: 'トイレはどこですか。', zh: '請問廁所在哪裡？' }, { jp: '休日はどこへ行きますか。', zh: '假日要去哪裡？' }] },
+      { type: 'vocab', level: 'N5', kanji: 'いつ', kana: 'いつ', meaning: '什麼時候', examples: [{ jp: '誕生日はいつですか。', zh: '生日是什麼時候？' }, { jp: 'いつ日本へ来ましたか。', zh: '什麼時候來日本的？' }] },
+      { type: 'vocab', level: 'N5', kanji: '歌う', kana: 'うたう', meaning: '唱歌', examples: [{ jp: 'カラオケで歌います。', zh: '在卡拉OK唱歌。' }, { jp: '彼女は歌うのが上手です。', zh: '她唱歌很好聽。' }] },
+      { type: 'vocab', level: 'N5', kanji: '泳ぐ', kana: 'およぐ', meaning: '游泳', examples: [{ jp: 'プールで泳ぎます。', zh: '在游泳池游泳。' }, { jp: '海で泳ぐのが好きです。', zh: '喜歡在海裡游泳。' }] },
+      { type: 'vocab', level: 'N5', kanji: '遊ぶ', kana: 'あそぶ', meaning: '玩耍', examples: [{ jp: '公園で子供が遊んでいます。', zh: '孩子們在公園玩耍。' }, { jp: '週末は友達と遊びます。', zh: '週末和朋友去玩。' }] },
+      { type: 'vocab', level: 'N5', kanji: '呼ぶ', kana: 'よぶ', meaning: '呼叫', examples: [{ jp: '大きな声で彼を呼びました。', zh: '大聲地呼叫他。' }, { jp: 'タクシーを呼んでください。', zh: '請幫我叫計程車。' }] },
+      { type: 'vocab', level: 'N5', kanji: '飛ぶ', kana: 'とぶ', meaning: '飛', examples: [{ jp: '鳥が空を飛んでいます。', zh: '鳥在天空中飛。' }, { jp: '飛行機が飛びます。', zh: '飛機起飛。' }] },
+      { type: 'vocab', level: 'N5', kanji: '走る', kana: 'はしる', meaning: '跑', examples: [{ jp: '毎日公園を走ります。', zh: '每天在公園跑步。' }, { jp: '急いで走ってください。', zh: '請快點跑。' }] },
+
+      // === JLPT N5 (第五批：50個生活動詞/物品/常見形容詞) ===
+      { type: 'vocab', level: 'N5', kanji: '洗う', kana: 'あらう', meaning: '洗', examples: [{ jp: 'ご飯の前に手を洗います。', zh: '吃飯前會洗手。' }, { jp: '車を洗いました。', zh: '洗了車子。' }] },
+      { type: 'vocab', level: 'N5', kanji: '脱ぐ', kana: 'ぬぐ', meaning: '脫(衣服/鞋子)', examples: [{ jp: 'ここで靴を脱いでください。', zh: '請在這裡脫鞋。' }, { jp: '暑いのでコートを脱ぎました。', zh: '因為很熱所以脫了大衣。' }] },
+      { type: 'vocab', level: 'N5', kanji: '着る', kana: 'きる', meaning: '穿(上半身)', examples: [{ jp: '新しいシャツを着ます。', zh: '穿新襯衫。' }, { jp: '今日は赤い服を着ています。', zh: '今天穿著紅色的衣服。' }] },
+      { type: 'vocab', level: 'N5', kanji: '履く', kana: 'はく', meaning: '穿(下半身/鞋襪)', examples: [{ jp: '白い靴を履いています。', zh: '穿著白色的鞋子。' }, { jp: 'ズボンを履きます。', zh: '穿褲子。' }] },
+      { type: 'vocab', level: 'N5', kanji: 'かぶる', kana: 'かぶる', meaning: '戴(帽子)', examples: [{ jp: '帽子をかぶって外に出ます。', zh: '戴上帽子出門。' }, { jp: '彼女は青い帽子をかぶっています。', zh: '她戴著藍色的帽子。' }] },
+      { type: 'vocab', level: 'N5', kanji: '持つ', kana: 'もつ', meaning: '拿、擁有', examples: [{ jp: '荷物を持ちましょうか。', zh: '我來幫您拿行李吧？' }, { jp: '私は車を持っています。', zh: '我有一輛車。' }] },
+      { type: 'vocab', level: 'N5', kanji: '置く', kana: 'おく', meaning: '放置', examples: [{ jp: '机の上に本を置きました。', zh: '把書放在桌子上。' }, { jp: 'ここに荷物を置かないでください。', zh: '請不要把行李放在這裡。' }] },
+      { type: 'vocab', level: 'N5', kanji: '曲がる', kana: 'まがる', meaning: '轉彎', examples: [{ jp: '次の角を右に曲がってください。', zh: '請在下一個轉角右轉。' }, { jp: '信号を左に曲がります。', zh: '在紅綠燈處左轉。' }] },
+      { type: 'vocab', level: 'N5', kanji: '渡る', kana: 'わたる', meaning: '渡過(馬路/橋)', examples: [{ jp: '道を渡るときは気をつけてください。', zh: '過馬路時請小心。' }, { jp: '橋を渡って駅に行きます。', zh: '過橋去車站。' }] },
+      { type: 'vocab', level: 'N5', kanji: '止まる', kana: 'とまる', meaning: '停止', examples: [{ jp: 'あの赤い車が止まりました。', zh: '那輛紅色的車停下來了。' }, { jp: '時計が止まっています。', zh: '時鐘停了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '始まる', kana: 'はじまる', meaning: '開始', examples: [{ jp: '授業は9時に始まります。', zh: '課程9點開始。' }, { jp: '映画が始まりました。', zh: '電影開始了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '終わる', kana: 'おわる', meaning: '結束', examples: [{ jp: 'テストが終わりました。', zh: '考試結束了。' }, { jp: '仕事は午後5時に終わります。', zh: '工作在下午5點結束。' }] },
+      { type: 'vocab', level: 'N5', kanji: '晴れる', kana: 'はれる', meaning: '晴天', examples: [{ jp: '明日は晴れるでしょう。', zh: '明天應該會是晴天吧。' }, { jp: '今日はよく晴れています。', zh: '今天天氣非常晴朗。' }] },
+      { type: 'vocab', level: 'N5', kanji: '曇る', kana: 'くもる', meaning: '陰天', examples: [{ jp: '空が曇ってきました。', zh: '天空變陰了。' }, { jp: '明日は曇りのち雨です。', zh: '明天是陰轉雨。' }] },
+      { type: 'vocab', level: 'N5', kanji: '疲れる', kana: 'つかれる', meaning: '累、疲倦', examples: [{ jp: 'たくさん歩いたので疲れました。', zh: '走很多路所以累了。' }, { jp: '仕事で疲れています。', zh: '因為工作很疲倦。' }] },
+      { type: 'vocab', level: 'N5', kanji: '泣く', kana: 'なく', meaning: '哭', examples: [{ jp: '赤ちゃんが泣いています。', zh: '嬰兒在哭。' }, { jp: '悲しくて泣きました。', zh: '因為很難過所以哭了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '笑う', kana: 'わらう', meaning: '笑', examples: [{ jp: 'みんな大きな声で笑いました。', zh: '大家都大聲笑了出來。' }, { jp: '彼はいつも笑っています。', zh: '他總是笑嘻嘻的。' }] },
+      { type: 'vocab', level: 'N5', kanji: '怒る', kana: 'おこる', meaning: '生氣', examples: [{ jp: '父はすぐ怒ります。', zh: '父親動不動就生氣。' }, { jp: '先生が怒っています。', zh: '老師正在生氣。' }] },
+      { type: 'vocab', level: 'N5', kanji: '頼む', kana: 'たのむ', meaning: '拜託、點餐', examples: [{ jp: 'レストランで料理を頼みます。', zh: '在餐廳點餐。' }, { jp: '友達に仕事を頼みました。', zh: '把工作拜託給朋友了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '貸す', kana: 'かす', meaning: '借出', examples: [{ jp: '彼に本を貸しました。', zh: '我借給他書了。' }, { jp: 'ペンを貸してください。', zh: '請借我筆。' }] },
+      { type: 'vocab', level: 'N5', kanji: '借りる', kana: 'かりる', meaning: '借入', examples: [{ jp: '図書館で本を借ります。', zh: '在圖書館借書。' }, { jp: '友達にお金を借りました。', zh: '向朋友借了錢。' }] },
+      { type: 'vocab', level: 'N5', kanji: '返す', kana: 'かえす', meaning: '歸還', examples: [{ jp: '明日、本を返します。', zh: '明天還書。' }, { jp: '借りたお金を返してください。', zh: '請把你借的錢還來。' }] },
+      { type: 'vocab', level: 'N5', kanji: '料理', kana: 'りょうり', meaning: '料理、做菜', examples: [{ jp: '母の料理は美味しいです。', zh: '媽媽做的菜很好吃。' }, { jp: '毎日自分で料理をします。', zh: '每天自己做菜。' }] },
+      { type: 'vocab', level: 'N5', kanji: 'お菓子', kana: 'おかし', meaning: '點心、糖果', examples: [{ jp: '子供はお菓子が好きです。', zh: '小孩子喜歡零食。' }, { jp: 'お菓子を食べすぎました。', zh: '點心吃太多了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '砂糖', kana: 'さとう', meaning: '糖', examples: [{ jp: 'コーヒーに砂糖を入れますか。', zh: '咖啡要加糖嗎？' }, { jp: '砂糖を少し入れてください。', zh: '請加一點糖。' }] },
+      { type: 'vocab', level: 'N5', kanji: '塩', kana: 'しお', meaning: '鹽', examples: [{ jp: 'スープに塩を入れます。', zh: '在湯裡加鹽。' }, { jp: '塩を取ってください。', zh: '請把鹽遞給我。' }] },
+      { type: 'vocab', level: 'N5', kanji: '醤油', kana: 'しょうゆ', meaning: '醬油', examples: [{ jp: 'お寿司に醤油をつけます。', zh: '壽司沾醬油吃。' }, { jp: '醤油がありません。', zh: '沒有醬油了。' }] },
+      { type: 'vocab', level: 'N5', kanji: 'お酒', kana: 'おさけ', meaning: '酒', examples: [{ jp: '父は毎日お酒を飲みます。', zh: '父親每天喝酒。' }, { jp: 'お酒はあまり好きではありません。', zh: '我不太喜歡喝酒。' }] },
+      { type: 'vocab', level: 'N5', kanji: '鍵', kana: 'かぎ', meaning: '鑰匙', examples: [{ jp: '部屋の鍵を忘れました。', zh: '忘記帶房間鑰匙了。' }, { jp: 'ドアに鍵をかけます。', zh: '把門上鎖。' }] },
+      { type: 'vocab', level: 'N5', kanji: '財布', kana: 'さいふ', meaning: '錢包', examples: [{ jp: '財布の中に百円があります。', zh: '錢包裡有100日圓。' }, { jp: '電車に財布を忘れました。', zh: '把錢包忘在電車上了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '電話', kana: 'でんわ', meaning: '電話', examples: [{ jp: '友達に電話をかけます。', zh: '打電話給朋友。' }, { jp: '電話の番号を教えてください。', zh: '請告訴我電話號碼。' }] },
+      { type: 'vocab', level: 'N5', kanji: '机', kana: 'つくえ', meaning: '桌子', examples: [{ jp: '机の上に辞書があります。', zh: '書桌上有字典。' }, { jp: '新しい机を買いました。', zh: '買了新書桌。' }] },
+      { type: 'vocab', level: 'N5', kanji: '椅子', kana: 'いす', meaning: '椅子', examples: [{ jp: 'この椅子に座ってください。', zh: '請坐在這張椅子上。' }, { jp: '部屋に椅子が二つあります。', zh: '房間裡有兩張椅子。' }] },
+      { type: 'vocab', level: 'N5', kanji: '窓', kana: 'まど', meaning: '窗戶', examples: [{ jp: '窓を開けてください。', zh: '請打開窗戶。' }, { jp: '窓から山が見えます。', zh: '從窗戶可以看見山。' }] },
+      { type: 'vocab', level: 'N5', kanji: 'ドア', kana: 'どあ', meaning: '門', examples: [{ jp: 'ドアを閉めてください。', zh: '請把門關上。' }, { jp: 'ドアの前に立っています。', zh: '站在門前。' }] },
+      { type: 'vocab', level: 'N5', kanji: '甘い', kana: 'あまい', meaning: '甜的', examples: [{ jp: 'このケーキはとても甘いです。', zh: '這個蛋糕非常甜。' }, { jp: '甘いものが好きです。', zh: '我喜歡甜食。' }] },
+      { type: 'vocab', level: 'N5', kanji: '辛い', kana: 'からい', meaning: '辣的', examples: [{ jp: 'このカレーは辛いです。', zh: '這個咖哩很辣。' }, { jp: '辛い料理は食べられません。', zh: '我不敢吃辣的料理。' }] },
+      { type: 'vocab', level: 'N5', kanji: '苦い', kana: 'にがい', meaning: '苦的', examples: [{ jp: '薬は苦いです。', zh: '藥很苦。' }, { jp: '苦いお茶を飲みました。', zh: '喝了苦茶。' }] },
+      { type: 'vocab', level: 'N5', kanji: '冷たい', kana: 'つめたい', meaning: '冰涼的', examples: [{ jp: '冷たい水をください。', zh: '請給我冰水。' }, { jp: '今日は風が冷たいです。', zh: '今天風很冷。' }] },
+      { type: 'vocab', level: 'N5', kanji: '暖かい', kana: 'あたたかい', meaning: '溫暖的', examples: [{ jp: '春になって暖かくなりました。', zh: '到了春天變溫暖了。' }, { jp: '暖かいスープを飲みます。', zh: '喝熱湯(溫暖的湯)。' }] },
+      { type: 'vocab', level: 'N5', kanji: '涼しい', kana: 'すずしい', meaning: '涼爽的', examples: [{ jp: '秋は涼しいです。', zh: '秋天很涼爽。' }, { jp: '木の下は涼しいですね。', zh: '樹下很涼快呢。' }] },
+      { type: 'vocab', level: 'N5', kanji: '明るい', kana: 'あかるい', meaning: '明亮的', examples: [{ jp: 'この部屋はとても明るいです。', zh: '這個房間非常明亮。' }, { jp: '彼は明るい人です。', zh: '他是個開朗的人。' }] },
+      { type: 'vocab', level: 'N5', kanji: '暗い', kana: 'くらい', meaning: '暗的', examples: [{ jp: '外はもう暗いです。', zh: '外面已經暗了。' }, { jp: '部屋が暗くて本が読めません。', zh: '房間很暗無法看書。' }] },
+      { type: 'vocab', level: 'N5', kanji: '強い', kana: 'つよい', meaning: '強的', examples: [{ jp: '今日は風が強いです。', zh: '今天風很強。' }, { jp: '彼は力が強いです。', zh: '他的力氣很大。' }] },
+      { type: 'vocab', level: 'N5', kanji: '弱い', kana: 'よわい', meaning: '弱的', examples: [{ jp: '私はお酒に弱いです。', zh: '我不勝酒力(對酒很弱)。' }, { jp: '風が弱くなりました。', zh: '風變弱了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '綺麗', kana: 'きれい', meaning: '漂亮、乾淨', examples: [{ jp: '彼女は綺麗な人です。', zh: '她是一位漂亮的人。' }, { jp: '部屋を綺麗に掃除しました。', zh: '把房間打掃乾淨了。' }] },
+      { type: 'vocab', level: 'N5', kanji: '静か', kana: 'しずか', meaning: '安靜的', examples: [{ jp: '図書館の中は静かです。', zh: '圖書館裡面很安靜。' }, { jp: '夜は静かになります。', zh: '晚上會變得安靜。' }] },
+      { type: 'vocab', level: 'N5', kanji: '賑やか', kana: 'にぎやか', meaning: '熱鬧的', examples: [{ jp: 'この町はとても賑やかです。', zh: '這條街非常熱鬧。' }, { jp: 'お祭りで賑やかですね。', zh: '因為有祭典所以很熱鬧呢。' }] },
+      { type: 'vocab', level: 'N5', kanji: '便利', kana: 'べんり', meaning: '方便的', examples: [{ jp: '私の家は駅から近くて便利です。', zh: '我家離車站近很方便。' }, { jp: 'スマートフォンはとても便利です。', zh: '智慧型手機非常方便。' }] },
+      { type: 'vocab', level: 'N5', kanji: '元気', kana: 'げんき', meaning: '健康的、有精神的', examples: [{ jp: 'お元気ですか。', zh: '您好嗎？(您有精神嗎？)' }, { jp: '子供たちは元気に遊んでいます。', zh: '孩子們正充滿活力地玩耍。' }] },
+
+      // === JLPT N4 (常見生活行為/抽象名詞) ===
+      { type: 'vocab', level: 'N4', kanji: '準備', kana: 'じゅんび', meaning: '準備', examples: [{ jp: '旅行の準備は終わりましたか。', zh: '旅行的準備結束了嗎？' }, { jp: '会議の準備をしています。', zh: '正在準備會議。' }] },
+      { type: 'vocab', level: 'N4', kanji: '約束', kana: 'やくそく', meaning: '約定', examples: [{ jp: '友達と約束があります。', zh: '我和朋友有約。' }, { jp: '約束を守ってください。', zh: '請遵守約定。' }] },
+      { type: 'vocab', level: 'N4', kanji: '案内', kana: 'あんない', meaning: '引導、帶路', examples: [{ jp: '町を案内しましょうか。', zh: '我來為你導覽城鎮吧。' }, { jp: '京都を案内してくれました。', zh: '帶我導覽了京都。' }] },
+      { type: 'vocab', level: 'N4', kanji: '危険', kana: 'きけん', meaning: '危險', examples: [{ jp: 'ここは危険だから入らないで。', zh: '這裡很危險請勿進入。' }, { jp: '危険な目に遭いました。', zh: '遇到了危險的事情。' }] },
+      { type: 'vocab', level: 'N4', kanji: '理由', kana: 'りゆう', meaning: '理由', examples: [{ jp: '遅れた理由を教えてください。', zh: '請告訴我遲到的理由。' }, { jp: '特に理由はありません。', zh: '沒有特別的理由。' }] },
+      { type: 'vocab', level: 'N4', kanji: '意見', kana: 'いけん', meaning: '意見', examples: [{ jp: 'みんなの意見を聞かせてください。', zh: '請讓我知道大家的意見。' }, { jp: '彼とは意見が合わない。', zh: '我和他意見不合。' }] },
+      { type: 'vocab', level: 'N4', kanji: '経験', kana: 'けいけん', meaning: '經驗', examples: [{ jp: '日本での生活は良い経験になった。', zh: '在日本的生活成了一次很好的經驗。' }, { jp: '仕事の経験が豊富です。', zh: '工作經驗很豐富。' }] },
+      { type: 'vocab', level: 'N4', kanji: '失敗', kana: 'しっぱい', meaning: '失敗', examples: [{ jp: 'テストで失敗してしまった。', zh: '考試考砸了。' }, { jp: '失敗は成功の母。', zh: '失敗為成功之母。' }] },
+      { type: 'vocab', level: 'N4', kanji: '払う', kana: 'はらう', meaning: '支付', examples: [{ jp: 'レジでお金を払います。', zh: '在收銀台付款。' }, { jp: '家賃を払うのを忘れた。', zh: '忘記付房租了。' }] },
+      { type: 'vocab', level: 'N4', kanji: '謝る', kana: 'あやまる', meaning: '道歉', examples: [{ jp: '自分のミスを素直に謝る。', zh: '坦率地為自己的失誤道歉。' }, { jp: '先生に謝らなければならない。', zh: '必須向老師道歉。' }] },
+      { type: 'vocab', level: 'N4', kanji: '計画', kana: 'けいかく', meaning: '計畫', examples: [{ jp: '夏休みの計画を立てる。', zh: '制定暑假計畫。' }, { jp: '計画通りに進んでいます。', zh: '正照著計畫進行。' }] },
+      { type: 'vocab', level: 'N4', kanji: '趣味', kana: 'しゅみ', meaning: '興趣', examples: [{ jp: '私の趣味は映画鑑賞です。', zh: '我的興趣是看電影。' }, { jp: '趣味に時間とお金を使う。', zh: '在興趣上花費時間和金錢。' }] },
+
+      // === JLPT N3 (進階動詞/社會相關名詞) ===
+      { type: 'vocab', level: 'N3', kanji: '努力', kana: 'どりょく', meaning: '努力', examples: [{ jp: '彼は目標のために努力している。', zh: '他為了目標正在努力。' }, { jp: '努力は必ず報われる。', zh: '努力必有回報。' }] },
+      { type: 'vocab', level: 'N3', kanji: '複雑', kana: 'ふくざつ', meaning: '複雜的', examples: [{ jp: 'この機械の使い方は複雑です。', zh: '這台機器的使用方法很複雜。' }, { jp: '複雑な気持ちになりました。', zh: '變得心情很複雜。' }] },
+      { type: 'vocab', level: 'N3', kanji: '偶然', kana: 'ぐうぜん', meaning: '偶然、碰巧', examples: [{ jp: '駅で偶然、昔の友達に会った。', zh: '在車站偶然遇見了以前的朋友。' }, { jp: 'これは単なる偶然です。', zh: '這單純只是偶然。' }] },
+      { type: 'vocab', level: 'N3', kanji: '確か', kana: 'たしか', meaning: '確實、大概是', examples: [{ jp: 'その話は確かだと思います。', zh: '我認為那件事是確實的。' }, { jp: '彼は確か、東京の出身です。', zh: '他大概是東京出生的。' }] },
+      { type: 'vocab', level: 'N3', kanji: '賛成', kana: 'さんせい', meaning: '贊成', examples: [{ jp: 'あなたの意見に賛成します。', zh: '我贊成你的意見。' }, { jp: '賛成多数で可決された。', zh: '多數贊成通過。' }] },
+      { type: 'vocab', level: 'N3', kanji: '期待', kana: 'きたい', meaning: '期待', examples: [{ jp: '新しい映画に期待しています。', zh: '我很期待新電影。' }, { jp: '親の期待に応える。', zh: '回應父母的期待。' }] },
+      { type: 'vocab', level: 'N3', kanji: '我慢', kana: 'がまん', meaning: '忍耐', examples: [{ jp: '痛みを我慢する。', zh: '忍耐疼痛。' }, { jp: 'もう少しの我慢だ。', zh: '再忍耐一下就好了。' }] },
+      { type: 'vocab', level: 'N3', kanji: '解決', kana: 'かいけつ', meaning: '解決', examples: [{ jp: '問題は無事に解決しました。', zh: '問題已經平安解決了。' }, { jp: '解決策をみんなで話し合う。', zh: '大家一起討論解決方案。' }] },
+      { type: 'vocab', level: 'N3', kanji: '条件', kana: 'じょうけん', meaning: '條件', examples: [{ jp: '採用の条件を確認する。', zh: '確認錄用條件。' }, { jp: '悪条件の中で試合が行われた。', zh: '在惡劣的条件下進行了比賽。' }] },
+      { type: 'vocab', level: 'N3', kanji: '影響', kana: 'えいきょう', meaning: '影響', examples: [{ jp: '子供は親の影響を受けやすい。', zh: '小孩子容易受父母影響。' }, { jp: '円安が経済に影響を与える。', zh: '日幣貶值對經濟造成影響。' }] },
+      
+      // === JLPT N2 (抽象名詞/進階表達) ===
+      { type: 'vocab', level: 'N2', kanji: '傾向', kana: 'けいこう', meaning: '傾向、趨勢', examples: [{ jp: '最近の若者は車を買わない傾向にある。', zh: '最近的年輕人有不買車的傾向。' }, { jp: '景気は回復の傾向を示している。', zh: '景氣顯示出復甦的趨勢。' }] },
+      { type: 'vocab', level: 'N2', kanji: '深刻', kana: 'しんこく', meaning: '嚴重的', examples: [{ jp: '事態は深刻になっている。', zh: '事態正變得嚴重。' }, { jp: '地球温暖化は深刻な問題だ。', zh: '全球暖化是個嚴重的問題。' }] },
+      { type: 'vocab', level: 'N2', kanji: '豊富', kana: 'ほうふ', meaning: '豐富的', examples: [{ jp: '日本は水資源が豊富です。', zh: '日本的水資源很豐富。' }, { jp: '豊富な経験を持つ人を採用する。', zh: '錄用擁有豐富經驗的人。' }] },
+      { type: 'vocab', level: 'N2', kanji: '曖昧', kana: 'あいまい', meaning: '曖昧、模稜兩可', examples: [{ jp: '曖昧な返事をする。', zh: '做出模稜兩可的回覆。' }, { jp: '記憶が曖昧でよく覚えていない。', zh: '記憶模糊不太記得了。' }] },
+      { type: 'vocab', level: 'N2', kanji: '評価', kana: 'ひょうか', meaning: '評價', examples: [{ jp: '彼の仕事は高く評価されている。', zh: '他的工作受到高度評價。' }, { jp: '新しい製品の評価を行う。', zh: '進行新產品的評價。' }] },
+      { type: 'vocab', level: 'N2', kanji: '矛盾', kana: 'むじゅん', meaning: '矛盾', examples: [{ jp: '彼の言っていることは矛盾している。', zh: '他說的話互相矛盾。' }, { jp: '社会の矛盾を感じる。', zh: '感受到社會的矛盾。' }] },
+      { type: 'vocab', level: 'N2', kanji: '慎重', kana: 'しんちょう', meaning: '慎重', examples: [{ jp: '慎重に行動する必要がある。', zh: '有必要慎重行動。' }, { jp: '慎重な態度をとる。', zh: '採取慎重的態度。' }] },
+      { type: 'vocab', level: 'N2', kanji: '貢献', kana: 'こうけん', meaning: '貢獻', examples: [{ jp: '彼は社会に大きく貢献した。', zh: '他對社會做出了巨大貢獻。' }, { jp: '地域の発展に貢献する。', zh: '對地區發展做出貢獻。' }] },
+      { type: 'vocab', level: 'N2', kanji: '維持', kana: 'いじ', meaning: '維持', examples: [{ jp: '健康を維持するために運動する。', zh: '為了維持健康而運動。' }, { jp: '現状を維持するのは難しい。', zh: '維持現狀是很困難的。' }] },
+
+      // === JLPT N1 (高難度詞彙/書面語) ===
+      { type: 'vocab', level: 'N1', kanji: '妥協', kana: 'だきょう', meaning: '妥協', examples: [{ jp: '品質に関しては絶対に妥協しない。', zh: '關於品質絕對不妥協。' }, { jp: '双方が妥協点を見出す必要がある。', zh: '雙方有必要找出妥協點。' }] },
+      { type: 'vocab', level: 'N1', kanji: '錯覚', kana: 'さっかく', meaning: '錯覺', examples: [{ jp: 'それは単なる目の錯覚です。', zh: '那單純只是視覺的錯覺。' }, { jp: '自分が偉いと錯覚している。', zh: '產生了自己很了不起的錯覺。' }] },
+      { type: 'vocab', level: 'N1', kanji: '懸念', kana: 'けねん', meaning: '擔憂、懸念', examples: [{ jp: '経済の悪化が懸念されている。', zh: '經濟悪化令人擔憂。' }, { jp: '安全面での懸念が残る。', zh: '在安全方面仍留有懸念。' }] },
+      { type: 'vocab', level: 'N1', kanji: '顕著', kana: 'けんちょ', meaning: '顯著的', examples: [{ jp: '薬の効果が顕著に表れた。', zh: '藥的效果顯著地展現出來了。' }, { jp: '売上の低下が顕著だ。', zh: '營業額顯著下降。' }] },
+      { type: 'vocab', level: 'N1', kanji: '執着', kana: 'しゅうちゃく', meaning: '執著', examples: [{ jp: '過去の栄光に執着する。', zh: '執著於過去的榮耀。' }, { jp: 'お金に対する執着が強い。', zh: '對金錢的執著很強。' }] },
+      { type: 'vocab', level: 'N1', kanji: '誇張', kana: 'こちょう', meaning: '誇張', examples: [{ jp: '話が少し誇張されている。', zh: '話說得稍微有點誇張。' }, { jp: '誇張した表現を避ける。', zh: '避免使用誇張的表達方式。' }] },
+      { type: 'vocab', level: 'N1', kanji: '偽造', kana: 'ぎぞう', meaning: '偽造', examples: [{ jp: 'パスポートを偽造した疑いで逮捕された。', zh: '因涉嫌偽造護照被捕。' }, { jp: '文書の偽造は犯罪です。', zh: '偽造文書是犯罪。' }] },
+      { type: 'vocab', level: 'N1', kanji: '逸脱', kana: 'いつだつ', meaning: '脫離、偏離', examples: [{ jp: '本来の目的から逸脱している。', zh: '偏離了原本的目的。' }, { jp: '常軌を逸脱した行動。', zh: '脫離常軌的行為。' }] },
+      { type: 'vocab', level: 'N1', kanji: '没頭', kana: 'ぼっとう', meaning: '埋頭、專心致志', examples: [{ jp: '彼は研究に没頭している。', zh: '他正埋頭於研究。' }, { jp: 'ゲームに没頭して時間を忘れる。', zh: '沉浸在遊戲中忘了時間。' }] },
+
+      // === 旅遊日常：食物 ===
       { type: 'vocab', level: '食物', kanji: 'ラーメン', kana: 'らーめん', meaning: '拉麵', examples: [{ jp: 'とんこつラーメンを一つください。', zh: '請給我一碗豚骨拉麵。' }, { jp: 'ここのラーメンは美味しいです。', zh: '這裡的拉麵很好吃。' }] },
       { type: 'vocab', level: '食物', kanji: '生ビール', kana: 'なまびーる', meaning: '生啤酒', examples: [{ jp: 'とりあえず生ビールをお願いします。', zh: '總之先來杯生啤酒吧。' }, { jp: '冷たいビールが飲みたい。', zh: '想喝冰涼的啤酒。' }] },
       { type: 'vocab', level: '食物', kanji: 'お会計', kana: 'おかいけい', meaning: '結帳', examples: [{ jp: 'お会計をお願いします。', zh: '麻煩結帳。' }, { jp: '別々でお会計できますか。', zh: '可以分開結帳嗎？' }] },
+      { type: 'vocab', level: '食物', kanji: 'おすすめ', kana: 'おすすめ', meaning: '推薦', examples: [{ jp: 'おすすめの料理はどれですか。', zh: '推薦的料理是哪一道？' }, { jp: '店長のおすすめを注文した。', zh: '點了店長推薦的菜。' }] },
+      { type: 'vocab', level: '食物', kanji: '持ち帰り', kana: 'もちかえり', meaning: '外帶', examples: [{ jp: 'これを持ち帰りにできますか。', zh: '這個可以外帶嗎？' }, { jp: 'テイクアウトでお願いします。', zh: '麻煩我要外帶。' }] },
+      { type: 'vocab', level: '食物', kanji: '居酒屋', kana: 'いざかや', meaning: '居酒屋', examples: [{ jp: '今夜は居酒屋で飲みましょう。', zh: '今晚去居酒屋喝酒吧。' }, { jp: '予約した居酒屋へ向かう。', zh: '前往預約好的居酒屋。' }] },
+      { type: 'vocab', level: '食物', kanji: '食べ放題', kana: 'たべほうだい', meaning: '吃到飽', examples: [{ jp: '焼肉の食べ放題に行きました。', zh: '去了燒肉吃到飽。' }, { jp: '食べ放題は制限時間があります。', zh: '吃到飽有時間限制。' }] },
+      { type: 'vocab', level: '食物', kanji: 'おしぼり', kana: 'おしぼり', meaning: '濕紙巾', examples: [{ jp: 'おしぼりをもう一つください。', zh: '請再給我一條濕紙巾。' }, { jp: 'おしぼりで手を拭く。', zh: '用濕紙巾擦手。' }] },
+      { type: 'vocab', level: '食物', kanji: '割り勘', kana: 'わりかん', meaning: '各付各的', examples: [{ jp: '今日の飲み会は割り勘にしよう。', zh: '今天的聚餐大家各付各的吧。' }, { jp: '割り勘でお願いします。', zh: '麻煩幫我們分開結帳。' }] },
+      { type: 'vocab', level: '食物', kanji: '注文', kana: 'ちゅうもん', meaning: '點餐', examples: [{ jp: '注文をお願いします。', zh: '麻煩我要點餐。' }, { jp: '注文した料理がまだ来ません。', zh: '點的菜還沒來。' }] },
+
+      // === 旅遊日常：設施 ===
       { type: 'vocab', level: '設施', kanji: 'トイレ', kana: 'といれ', meaning: '廁所、洗手間', examples: [{ jp: 'トイレはどこですか。', zh: '請問廁所在哪裡？' }, { jp: 'この奥にトイレがあります。', zh: '廁所在這最裡面。' }] },
       { type: 'vocab', level: '設施', kanji: 'コンビニ', kana: 'こんびに', meaning: '便利商店', examples: [{ jp: '近くにコンビニはありますか。', zh: '附近有便利商店嗎？' }, { jp: 'コンビニでお弁当を買う。', zh: '在便利商店買便當。' }] },
       { type: 'vocab', level: '設施', kanji: '薬局', kana: 'やっきょく', meaning: '藥局', examples: [{ jp: '薬局で風邪薬を買いました。', zh: '在藥局買了感冒藥。' }, { jp: 'あそこに薬局が見えます。', zh: '可以看到那裡有家藥局。' }] },
+      { type: 'vocab', level: '設施', kanji: '病院', kana: 'びょういん', meaning: '醫院', examples: [{ jp: '具合が悪いので病院に行きます。', zh: '身體不舒服所以要去醫院。' }, { jp: '救急病院を探してください。', zh: '請幫我找急診醫院。' }] },
+      { type: 'vocab', level: '設施', kanji: '両替所', kana: 'りょうがえじょ', meaning: '外幣兌換處', examples: [{ jp: '両替所はどこにありますか。', zh: '請問兌換處在哪裡？' }, { jp: '空港で両替をした。', zh: '在機場換了錢。' }] },
+      { type: 'vocab', level: '設施', kanji: 'エレベーター', kana: 'えれべーたー', meaning: '電梯', examples: [{ jp: 'エレベーターで五階へ上がる。', zh: '搭電梯上五樓。' }, { jp: 'あちらのエレベーターをご利用ください。', zh: '請使用那邊的電梯。' }] },
+      { type: 'vocab', level: '設施', kanji: '交番', kana: 'こうばん', meaning: '警察局(派出所)', examples: [{ jp: '道に迷ったので交番で聞く。', zh: '迷路了所以在派出所問路。' }, { jp: '財布を落として交番に行った。', zh: '掉錢包了所以去了派出所。' }] },
+      { type: 'vocab', level: '設施', kanji: '案内所', kana: 'あんないじょ', meaning: '服務台、詢問處', examples: [{ jp: '観光案内所で地図をもらう。', zh: '在觀光詢問處拿地圖。' }, { jp: '案内所は駅の東口にあります。', zh: '服務台在車站東口。' }] },
+      { type: 'vocab', level: '設施', kanji: '自動販売機', kana: 'じどうはんばいき', meaning: '自動販賣機', examples: [{ jp: '自動販売機で飲み物を買う。', zh: '在自動販賣機買飲料。' }, { jp: 'あそこに自動販売機があります。', zh: '那邊有自動販賣機。' }] },
+
+      // === 旅遊日常：交通 ===
       { type: 'vocab', level: '交通', kanji: '駅', kana: 'えき', meaning: '車站', examples: [{ jp: '東京駅までどうやって行きますか。', zh: '請問到東京車站怎麼走？' }, { jp: '駅の前で待ち合わせしましょう。', zh: '在車站前面碰面吧。' }] },
       { type: 'vocab', level: '交通', kanji: '新幹線', kana: 'しんかんせん', meaning: '新幹線', examples: [{ jp: '新幹線で京都へ行きます。', zh: '搭新幹線去京都。' }, { jp: '新幹線のチケットを予約する。', zh: '預約新幹線的車票。' }] },
-      { type: 'vocab', level: '交通', kanji: '切符', kana: 'きっぷ', meaning: '車票', examples: [{ jp: '切符をなくしてしまいました。', zh: '我不小心把車票弄丟了。' }, { jp: '券売機で切符を買う。', zh: '在售票機買車票。' }] }
-    ];
+      { type: 'vocab', level: '交通', kanji: '切符', kana: 'きっぷ', meaning: '車票', examples: [{ jp: '切符をなくしてしまいました。', zh: '我不小心把車票弄丟了。' }, { jp: '券売機で切符を買う。', zh: '在售票機買車票。' }] },
+      { type: 'vocab', level: '交通', kanji: '地下鉄', kana: 'ちかてつ', meaning: '地下鐵', examples: [{ jp: '地下鉄に乗って渋谷へ行く。', zh: '搭地下鐵去澀谷。' }, { jp: '地下鉄の路線図をください。', zh: '請給我地下鐵の路線圖。' }] },
+      { type: 'vocab', level: '交通', kanji: '乗り換える', kana: 'のりかえる', meaning: '轉車', examples: [{ jp: '次の駅で乗り換えてください。', zh: '請在下一站轉車。' }, { jp: '新宿で山手線に乗り換える。', zh: '在新宿轉乘山手線。' }] },
+      { type: 'vocab', level: '交通', kanji: '指定席', kana: 'していせき', meaning: '對號座', examples: [{ jp: '指定席の切符を買いました。', zh: '買了對號座的車票。' }, { jp: '自由席はいっぱいです。', zh: '自由座已經滿了。' }] },
+      { type: 'vocab', level: '交通', kanji: '改札口', kana: 'かいさつぐち', meaning: '剪票口', examples: [{ jp: '改札口で待っています。', zh: '在剪票口等你。' }, { jp: 'ICカードを改札口にタッチする。', zh: '將IC卡嗶進剪票口。' }] },
+      { type: 'vocab', level: '交通', kanji: 'バス停', kana: 'ばすてい', meaning: '公車站', examples: [{ jp: 'バス停はどこですか。', zh: '請問公車站在哪裡？' }, { jp: 'バス停でバスを待つ。', zh: '在公車站等公車。' }] },
+      { type: 'vocab', level: '交通', kanji: '満員', kana: 'まんいん', meaning: '客滿', examples: [{ jp: '朝の電車は満員です。', zh: '早上的電車客滿。' }, { jp: '満員電車に乗る。', zh: '搭乘擠滿人的電車。' }] },
 
-    const baseConversationDatabase = [
+      // === 旅遊日常：對話 (100 句完整實用對答) ===
       { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: '袋はお分けしますか？', kana: 'ふくろはおわけしますか？', meaning: '袋子需要幫您分開裝嗎？' }, answer: { speaker: '自己', kanji: '一緒で大丈夫です。', kana: 'いっしょでだいじょうぶです。', meaning: '裝一起就可以了。' } },
       { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'ポイントカードはお持ちですか？', kana: 'ぽいんとかーどはおもちですか？', meaning: '請問有會員集點卡嗎？' }, answer: { speaker: '自己', kanji: '持っていません。', kana: 'もっていません。', meaning: '我沒有。' } },
       { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'すみません、トイレはどこですか？', kana: 'すみません、といれはどこですか？', meaning: '不好意思，請問廁所在哪裡？' }, answer: { speaker: '店員', kanji: 'まっすぐ行って、右にあります。', kana: 'まっすぐいって、みぎにあります。', meaning: '直走之後，在您的右邊。' } },
       { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'お支払いはどうされますか？', kana: 'おしはらいはどうされますか？', meaning: '請問您要用什麼方式付款？' }, answer: { speaker: '自己', kanji: 'クレジットカードでお願いします。', kana: 'くれじっとかーどでおねがいします。', meaning: '麻煩用信用卡付款。' } },
-      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'これを試着してもいいですか？', kana: 'これをしちゃくしてもいいですか？', meaning: '請問這個可以試穿嗎？' }, answer: { speaker: '店員', kanji: 'はい、どうぞ。ご案内します。', kana: 'はい、どうぞ。ごあんないします。', meaning: '好的，請。我為您帶路。' } }
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'これを試着してもいいですか？', kana: 'これをしちゃくしてもいいですか？', meaning: '請問這個可以試穿嗎？' }, answer: { speaker: '店員', kanji: 'はい、どうぞ。ご案内します。', kana: 'はい、どうぞ。ごあんないします。', meaning: '好的，請。我為您帶路。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'おすすめのメニューはどれですか？', kana: 'おすすめのめにゅーはどれですか？', meaning: '請問推薦的菜單是哪一個？' }, answer: { speaker: '店員', kanji: 'こちらの海鮮丼が人気です。', kana: 'こちらのかいせんどんがにんきです。', meaning: '這份海鮮丼很受歡迎。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '免税できますか？', kana: 'めんぜいできますか？', meaning: '請問可以免稅嗎？' }, answer: { speaker: '店員', kanji: 'はい、パスポートをお願いします。', kana: 'はい、ぱすぽーとをおねがいします。', meaning: '可以的，請給我您的護照。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'チェックインをお願いします。', kana: 'ちぇっくいんをおねがいします。', meaning: '麻煩我要辦理入住。' }, answer: { speaker: '店員', kanji: 'ご予約のお名前をお願いします。', kana: 'ごよやくのおなまえをおねがいします。', meaning: '請告訴我您預約的姓名。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '東京駅までどう行けばいいですか？', kana: 'とうきょうえきまでどういけばいいですか？', meaning: '請問到東京車站該怎麼走？' }, answer: { speaker: '店員', kanji: '３番線の電車に乗ってください。', kana: 'さんばんせんのでんしゃにのってください。', meaning: '請搭乘3號月台的電車。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'お弁当温めますか？', kana: 'おべんとうあたためますか？', meaning: '便當需要幫您微波加熱嗎？' }, answer: { speaker: '自己', kanji: 'はい、お願いします。', kana: 'はい、おねがいします。', meaning: '好，麻煩你了。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '写真を撮ってもらえませんか？', kana: 'しゃしんをとってもらえませんか？', meaning: '可以麻煩您幫我拍照嗎？' }, answer: { speaker: '店員', kanji: 'はい、いいですよ。', kana: 'はい、いいですよ。', meaning: '好的，沒問題喔。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '荷物を預かってもらえますか？', kana: 'にもつをあずかってもらえますか？', meaning: '可以寄放行李嗎？' }, answer: { speaker: '店員', kanji: 'はい、フロントで承ります。', kana: 'はい、ふろんとでうけたまわります。', meaning: '可以的，我們在櫃檯為您辦理。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '大きいサイズはありますか？', kana: 'おおきいさいずはありますか？', meaning: '請問有比較大的尺寸嗎？' }, answer: { speaker: '店員', kanji: '在庫を確認してまいります。', kana: 'ざいこをかくにんしてまいります。', meaning: '我去幫您確認一下庫存。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '違う色はありますか？', kana: 'ちがういろはありますか？', meaning: '請問有別的顏色嗎？' }, answer: { speaker: '店員', kanji: 'はい、黒と白がございます。', kana: 'はい、くろとしろがございます。', meaning: '有的，還有黑色跟白色。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'これをください。', kana: 'これをください。', meaning: '我要買這個。' }, answer: { speaker: '店員', kanji: 'かしこまりました。', kana: 'かしこまりました。', meaning: '好的，沒問題。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'クレジットカードは使えますか？', kana: 'くれじっとかーどはつかえますか？', meaning: '請問可以使用信用卡嗎？' }, answer: { speaker: '店員', kanji: 'はい、ご利用いただけます。', kana: 'はい、ごりよういただけます。', meaning: '是的，可以使用。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'レシートはご利用ですか？', kana: 'れしーとはごりようですか？', meaning: '請問需要明細(收據)嗎？' }, answer: { speaker: '自己', kanji: 'はい、お願いします。', kana: 'はい、おねがいします。', meaning: '是的，麻煩你了。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'プレゼント用ですか？', kana: 'ぷれぜんとようですか？', meaning: '請問是要送人的禮物嗎？' }, answer: { speaker: '自己', kanji: 'はい、ラッピングをお願いします。', kana: 'はい、らっぴんぐをおねがいします。', meaning: '是的，麻煩幫我包裝。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'ご自宅用ですか？', kana: 'ごじたくようですか？', meaning: '請問是您自己要用的嗎？' }, answer: { speaker: '自己', kanji: 'はい、自宅用です。', kana: 'はい、じたくようです。', meaning: '是的，我自己用的。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: '何名様ですか？', kana: 'なんめいさまですか？', meaning: '請問總共幾位呢？' }, answer: { speaker: '自己', kanji: '2人です。', kana: 'ふたりです。', meaning: '我們有兩位。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'ご予約はされていますか？', kana: 'ごよやくはされていますか？', meaning: '請問有事先訂位嗎？' }, answer: { speaker: '自己', kanji: 'はい、7時に予約した田中です。', kana: 'はい、しちじによやくしたたなかです。', meaning: '有的，我是訂7點的田中。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: '喫煙席と禁煙席、どちらになさいますか？', kana: 'きつえんせきときんえんせき、どちらになさいますか？', meaning: '請問要吸菸席還是禁菸席呢？' }, answer: { speaker: '自己', kanji: '禁煙席でお願いします。', kana: 'きんえんせきでおねがいします。', meaning: '麻煩給我禁菸席。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'ご注文はお決まりですか？', kana: 'ごちゅうもんはおきまりですか？', meaning: '請問決定好要點什麼了嗎？' }, answer: { speaker: '自己', kanji: 'もう少し時間をください。', kana: 'もうすこしじかんをください。', meaning: '請再給我們一點時間。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'お水をもらえますか？', kana: 'おみずをもらえますか？', meaning: '可以給我一杯水嗎？' }, answer: { speaker: '店員', kanji: 'かしこまりました。少々お待ちください。', kana: 'かしこまりました。しょうしょうおまちください。', meaning: '好的，請稍等一下。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '取り皿を2枚ください。', kana: 'とりざらをにまいくてください。', meaning: '請給我兩個小分裝盤。' }, answer: { speaker: '店員', kanji: 'はい、すぐにお持ちします。', kana: 'はい、すぐにおもちします。', meaning: '好的，馬上為您送來。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'お箸を落としてしまいました。', kana: 'おはしをおとしてしまいました。', meaning: '我不小心把筷子弄掉了。' }, answer: { speaker: '店員', kanji: '新しいものをお持ちします。', kana: 'あたらしいものをおもちします。', meaning: '我去為您拿一雙新的。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'ごちそうさまでした。', kana: 'ごちそうさまでした。', meaning: '多謝款待(吃飽了)。' }, answer: { speaker: '店員', kanji: 'ありがとうございました。またお越しください。', kana: 'ありがとうございました。またおこしください。', meaning: '非常感謝，歡迎下次再度光臨。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'チェックアウトをお願いします。', kana: 'ちぇっくあうとをおねがいします。', meaning: '麻煩我要辦理退房。' }, answer: { speaker: '店員', kanji: 'ルームキーをお返しください。', kana: 'るーむきーをおかえしください。', meaning: '請歸還您的房間鑰匙。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '朝食は何時からですか？', kana: 'ちょうしょくはなんじからですか？', meaning: '請問早餐是從幾點開始？' }, answer: { speaker: '店員', kanji: '朝6時半から9時半までです。', kana: 'あさろくじはんからくじはんまでです。', meaning: '從早上6點半到9點半為止。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'Wi-Fiのパスワードは何ですか？', kana: 'わいふぁいのぱすわーどはなんですか？', meaning: '請問Wi-Fi的密碼是什麼？' }, answer: { speaker: '店員', kanji: 'お部屋のテレビ画面に表示されております。', kana: 'おへやのてれびがめんにひょうじされております。', meaning: '密碼顯示在您房間的電視畫面上。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'タオルをもう一枚もらえますか？', kana: 'たおるをもういちまいもらえますか？', meaning: '可以再給我一條毛巾嗎？' }, answer: { speaker: '店員', kanji: 'はい、お部屋にお持ちします。', kana: 'はい、おへやにおもちします。', meaning: '好的，我會幫您送到房間。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '部屋のエアコンが動きません。', kana: 'へやのえあこんがうごきません。', meaning: '房間的冷氣沒有運轉(壞了)。' }, answer: { speaker: '店員', kanji: 'すぐにスタッフを向かわせます。', kana: 'すぐにすたっふをむかわせます。', meaning: '我馬上派工作人員過去。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'タクシーを呼んでもらえますか？', kana: 'たくしーをよんでもらえますか？', meaning: '可以幫我叫一輛計程車嗎？' }, answer: { speaker: '店員', kanji: 'はい、何時にお呼びしましょうか。', kana: 'はい、なんじにおよびしましょうか。', meaning: '好的，請問要約幾點的車呢？' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '近くにコンビニはありますか？', kana: 'ちかくにこんびにはありますか？', meaning: '請問附近有便利商店嗎？' }, answer: { speaker: '店員', kanji: 'ホテルを出て右に5分ほど歩いたところにあります。', kana: 'ほてるをでてみぎにごふんほどあるいたところにあります。', meaning: '出飯店後往右走大約5分鐘就會看到。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '切符売り場はどこですか？', kana: 'きっぷうりばはどこですか？', meaning: '請問售票處在哪裡？' }, answer: { speaker: '駅員', kanji: 'あちらの階段を下りたところにあります。', kana: 'あちらのかいだんをおりたところにあります。', meaning: '走下那邊的樓梯就會看到了。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '京都までの指定席を1枚ください。', kana: 'きょうとまでのしていせきをいちまいくてください。', meaning: '請給我一張到京都的對號座車票。' }, answer: { speaker: '駅員', kanji: '窓側と通路側、どちらがよろしいですか。', kana: 'まどがわとつうろがわ、どちらがよろしいですか。', meaning: '請問您要靠窗還是靠走道的位子呢？' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'この電車は新宿に止まりますか？', kana: 'このでんしゃはしんじゅくにとまりますか？', meaning: '這班電車有停靠新宿站嗎？' }, answer: { speaker: '駅員', kanji: 'はい、止まりますよ。', kana: 'はい、とまりますよ。', meaning: '有的，有停靠喔。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '次の電車は何時に来ますか？', kana: 'つぎのでんしゃはなんじにきますか？', meaning: '下一班電車幾點會來？' }, answer: { speaker: '駅員', kanji: '10時15分に参ります。', kana: 'じゅうじじゅうごふんにまいります。', meaning: '10點15分會進站。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '新幹線のホームは何番ですか？', kana: 'しんかんせんのほーむはなんばんですか？', meaning: '請問新幹線的月台是幾號？' }, answer: { speaker: '駅員', kanji: '14番線になります。', kana: 'じゅうよんばんせんになります。', meaning: '是在14號月台。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'すみません、ここで降ります。', kana: 'すみません、ここでおります。', meaning: '不好意思，我要在這裡下車(借過)。' }, answer: { speaker: '乗客', kanji: 'はい、どうぞ。', kana: 'はい、どうぞ。', meaning: '好的，請過。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '東京タワーまでお願いします。', kana: 'とうきょうたわーまでおねがいします。', meaning: '麻煩載我到東京鐵塔。' }, answer: { speaker: '運転手', kanji: 'かしこまりました。', kana: 'かしこまりました。', meaning: '好的，沒問題。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'ここから歩いて行けますか？', kana: 'ここからあるいていけますか？', meaning: '從這裡可以走路過去嗎？' }, answer: { speaker: '店員', kanji: '歩くと20分くらいかかりますよ。', kana: 'あるくとにじゅっぷんくらいかかりますよ。', meaning: '走路的話大約需要花20分鐘喔。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'このシャッターを押していただけますか？', kana: 'このしゃったーをおしていただけますか？', meaning: '可以麻煩您幫我按一下快門嗎？' }, answer: { speaker: '通行人', kanji: 'はい、チーズ！', kana: 'はい、ちーず！', meaning: '好的，西瓜(拍照用語)！' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '日本語がよく分かりません。', kana: 'にほんごがよくわかりません。', meaning: '我不太懂日文。' }, answer: { speaker: '店員', kanji: '英語のメニューをお持ちしましょうか。', kana: 'えいごのめにゅーをおもちしましょうか。', meaning: '需要為您拿英文菜單來嗎？' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '英語を話せる人はいますか？', kana: 'えいごをはなせるひとはいますか？', meaning: '請問有會說英文的人嗎？' }, answer: { speaker: '店員', kanji: '英語対応のスタッフを呼んでまいります。', kana: 'えいごたいおうのすたっふをよんでまいります。', meaning: '我去請能用英文應對的工作人員過來。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '道に迷ってしまいました。', kana: 'みちにまよってしまいました。', meaning: '我不小心迷路了。' }, answer: { speaker: '通行人', kanji: 'どこに行きたいですか。', kana: 'どこにいきたいですか。', meaning: '請問你想去哪裡呢？' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'スマホを電車に忘れました。', kana: 'すまほをでんしゃにわすれました。', meaning: '我把手機忘在電車上了。' }, answer: { speaker: '駅員', kanji: '忘れ物センターにご案内します。', kana: 'わすれものせんたーにごあんないします。', meaning: '我帶您去失物招領中心。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'もう少し安いのはありますか？', kana: 'もうすこしやすいうのはありますか？', meaning: '請問有稍微再便宜一點的嗎？' }, answer: { speaker: '店員', kanji: 'こちらのセール品はいかがでしょうか。', kana: 'こちらのせーるひんはいかがでしょうか。', meaning: '您覺得這邊的特價品如何呢？' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: '何かお探しですか？', kana: 'なにかおさがしですか？', meaning: '請問在找什麼嗎？' }, answer: { speaker: '自己', kanji: '見ているだけです。ありがとうございます。', kana: 'みているだけです。ありがとうございます。', meaning: '我只是看看而已，謝謝。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'これは日本製ですか？', kana: 'これはにほんせいですか？', meaning: '請問這個是日本製的嗎？' }, answer: { speaker: '店員', kanji: 'はい、日本製でございます。', kana: 'はい、にほんせいでございます。', meaning: '是的，這是日本製的。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'おすすめの地酒はありますか？', kana: 'おすすめのじざけはありますか？', meaning: '請問有推薦的當地清酒嗎？' }, answer: { speaker: '店員', kanji: 'こちらの辛口が人気です。', kana: 'こちらのからくちがにんきです。', meaning: '這款辛口(不甜)的清酒很受歡迎。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'メニューを下げてもよろしいですか？', kana: 'めにゅーをさげてもよろしいですか？', meaning: '請問菜單可以收走了嗎？' }, answer: { speaker: '自己', kanji: 'はい、お願いします。', kana: 'はい、おねがいします。', meaning: '好的，麻煩你了。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'お水のお代わりはいかがですか？', kana: 'おみずのおかわりはいかがですか？', meaning: '請問需要再幫您加水嗎？' }, answer: { speaker: '自己', kanji: 'あ、お願いします。', kana: 'あ、おねがいします。', meaning: '啊，好的麻煩你了。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'これはお肉が入っていますか？', kana: 'これはおにくがはいっていますか？', meaning: '請問這道菜有放肉嗎？' }, answer: { speaker: '店員', kanji: 'いいえ、野菜だけです。', kana: 'いいえ、やさいだけです。', meaning: '沒有，裡面只有放蔬菜。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '店員', kanji: 'お持ち帰りの袋は有料ですが、ご利用ですか？', kana: 'おもちかえりのふくろはゆうりょうですが、ごりようですか？', meaning: '外帶的提袋需要另外收費，請問需要嗎？' }, answer: { speaker: '自己', kanji: 'はい、1枚お願いします。', kana: 'はい、いちまいおねがいします。', meaning: '好的，請給我一個。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '荷物を部屋まで運んでもらえますか？', kana: 'にもつをへやまではこんでもらえますか？', meaning: '可以幫我把行李搬到房間嗎？' }, answer: { speaker: '店員', kanji: 'かしこまりました。', kana: 'かしこまりました。', meaning: '好的，沒問題。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '両替はできますか？', kana: 'りょうがえはできますか？', meaning: '請問可以換錢(外幣兌換)嗎？' }, answer: { speaker: '店員', kanji: '申し訳ありませんが、フロントでは対応しておりません。', kana: 'もうしわけありませんが、ふろんとではたいおうしておりません。', meaning: '非常抱歉，櫃檯沒有提供這項服務。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'ICカードをチャージしたいのですが。', kana: 'あいしーかーどをちゃーじしたいのですが。', meaning: '我想幫IC卡(西瓜卡等)儲值。' }, answer: { speaker: '駅員', kanji: 'あちらの精算機をご利用ください。', kana: 'あちらのせいさんきをごりようください。', meaning: '請使用那邊的精算機(補票/儲值機)。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'タクシー乗り場はどこですか？', kana: 'たくしーのりばはどこですか？', meaning: '請問計程車招呼站在哪裡？' }, answer: { speaker: '駅員', kanji: '東口を出てすぐのところです。', kana: 'ひがしぐちをでてすぐのところです。', meaning: '出東口之後馬上就會看到了。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '営業時間は何時までですか？', kana: 'えいぎょうじかんはなんじまでですか？', meaning: '請問營業時間到幾點？' }, answer: { speaker: '店員', kanji: '夜8時まで営業しております。', kana: 'よるはちじまでえいぎょうしております。', meaning: '我們營業到晚上8點。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '写真を撮ってもいいですか？', kana: 'しゃしんをとってもいいですか？', meaning: '請問可以在這裡拍照嗎？' }, answer: { speaker: '店員', kanji: '申し訳ありませんが、撮影は禁止されております。', kana: 'もうしわけありませんが、さつえいはきんしされております。', meaning: '非常抱歉，這裡禁止攝影拍照。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'お手洗いを借りてもいいですか？', kana: 'おてあらいをかりてもいいですか？', meaning: '請問可以借用一下洗手間嗎？' }, answer: { speaker: '店員', kanji: 'はい、店の奥にございます。', kana: 'はい、みせのおくにございます。', meaning: '可以的，洗手間在店的深處。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '試着室はどこですか？', kana: 'しちゃくしつはどこですか？', meaning: '請問試衣間在哪裡？' }, answer: { speaker: '店員', kanji: 'あちらの奥にございます。', kana: 'あちらのおくにございます。', meaning: '在裡面的最深處。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'これの新しいものはありますか？', kana: 'これのあたらしいものはありますか？', meaning: '請問這個有拿新的嗎？' }, answer: { speaker: '店員', kanji: 'はい、新しいものをお出しします。', kana: 'はい、あたらしいものをおだしします。', meaning: '有的，我去拿新的給您。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'もう少し小さいサイズはありますか？', kana: 'もうすこしちいさいさいずはありますか？', meaning: '請問有稍微再小一點的尺寸嗎？' }, answer: { speaker: '店員', kanji: '確認いたしますので、お待ちください。', kana: 'かくにんいたしますので、おまちください。', meaning: '我為您確認一下，請稍候。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '返品はできますか？', kana: 'へんぴんはできますか？', meaning: '請問可以退貨嗎？' }, answer: { speaker: '店員', kanji: 'レシートがあれば、一週間以内に可能です。', kana: 'れしーとがあれば、いっしゅうかんいないにかのうです。', meaning: '如果有收據，一週內都可以退貨。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '別々に包んでいただけますか？', kana: 'べつべつつつんでいただけますか？', meaning: '可以麻煩您分開包裝嗎？' }, answer: { speaker: '店員', kanji: 'かしこまりました。別々にお包みします。', kana: 'かしこまりました。べつべつにおつつみします。', meaning: '好的，沒問題，為您分開包裝。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '予約していないのですが、入れますか？', kana: 'よやくしていないのですが、はいれますか？', meaning: '我沒有預約，請問可以進去嗎？' }, answer: { speaker: '店員', kanji: 'はい、すぐにご案内できます。', kana: 'はい、すぐにごあんないできます。', meaning: '可以的，馬上為您帶位。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '英語のメニューはありますか？', kana: 'えいごのめにゅーはありますか？', meaning: '請問有英文菜單嗎？' }, answer: { speaker: '店員', kanji: 'はい、こちらが英語のメニューです。', kana: 'はい、こちらがえいごのめにゅーです。', meaning: '有的，這邊是英文菜單。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'お会計はテーブルですか、レジですか？', kana: 'おかいけいはてーぶるですか、れじですか？', meaning: '請問是在桌邊結帳還是在收銀台？' }, answer: { speaker: '店員', kanji: 'お会計はレジで承ります。', kana: 'おかいけいはれじでうけたまわります。', meaning: '結帳請至收銀台辦理。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'アレルギーがあるのですが、卵は入っていますか？', kana: 'あれるぎーがあるのですが、たまごははいっていますか？', meaning: '我有過敏，請問這裡面有放蛋嗎？' }, answer: { speaker: '店員', kanji: 'いいえ、卵は使用しておりません。', kana: 'いいえ、たまごはしようしておりません。', meaning: '沒有，這道菜沒有使用蛋。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '子供用の椅子はありますか？', kana: 'こどもようのいすはありますか？', meaning: '請問有兒童座椅嗎？' }, answer: { speaker: '店員', kanji: 'はい、ご用意いたします。', kana: 'はい、ごよういいたします。', meaning: '有的，馬上為您準備。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'これは何の肉ですか？', kana: 'これはなんのにくですか？', meaning: '請問這是什麼肉？' }, answer: { speaker: '店員', kanji: 'そちらは豚肉でございます。', kana: 'そちらはぶたにくでございます。', meaning: '那一道是豬肉。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'お湯をもらえますか？', kana: 'おゆをもらえますか？', meaning: '可以給我一些熱水嗎？' }, answer: { speaker: '店員', kanji: 'かしこまりました。すぐにお持ちします。', kana: 'かしこまりました。すぐにおもちします。', meaning: '好的，馬上為您送來。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '持ち帰り用のパックをもらえますか？', kana: 'もちかえりようのぱっくをもらえますか？', meaning: '可以給我一個外帶用的餐盒嗎？' }, answer: { speaker: '店員', kanji: 'はい、こちらの容器をお使いください。', kana: 'はい、こちらのようきをおつかいください。', meaning: '好的，請使用這個容器。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '荷物を先に預けてもいいですか？', kana: 'にもつをさきにあずけてもいいですか？', meaning: '可以先寄放行李嗎？' }, answer: { speaker: '店員', kanji: 'はい、お預かりいたします。', kana: 'はい、おあずかりいたします。', meaning: '可以的，我們幫您保管。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'タクシーを明日の朝8時に予約できますか？', kana: 'たくしーをあしたのあさはちじによやくできますか？', meaning: '可以預約明天早上8點的計程車嗎？' }, answer: { speaker: '店員', kanji: 'かしこまりました。手配しておきます。', kana: 'かしこまりました。てはいしておきます。', meaning: '好的，我會為您安排。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '近くにおすすめのレストランはありますか？', kana: 'ちかくにおすすめのれすとらんはありますか？', meaning: '附近有推薦的餐廳嗎？' }, answer: { speaker: '店員', kanji: '近くに美味しいお寿司屋さんがありますよ。', kana: 'ちかくにおいしいおすしやさんがありますよ。', meaning: '附近有一家很好吃的壽司店喔。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '部屋の鍵を部屋に忘れてしまいました。', kana: 'へやのかぎをへやにわすれてしまいました。', meaning: '我把房間鑰匙忘在房間裡了。' }, answer: { speaker: '店員', kanji: '身分証を確認後、スペアキーをお渡しします。', kana: 'みぶんしょうをかくにんご、すぺあきーをおわたしします。', meaning: '確認身分證後，會交給您備用鑰匙。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '両替機はどこにありますか？', kana: 'りょうがえきはどこにありますか？', meaning: '請問外幣兌換機在哪裡？' }, answer: { speaker: '店員', kanji: 'ロビーの右側にございます。', kana: 'ろびーのみぎがわにございます。', meaning: '在大廳的右側。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '大浴場は何時までですか？', kana: 'だいよくじょうはなんじまでですか？', meaning: '大浴場開放到幾點？' }, answer: { speaker: '店員', kanji: '夜の12時までご利用いただけます。', kana: 'よるのじゅうにじまでごりよういただけます。', meaning: '可以使用到晚上12點。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '加湿器を貸していただけますか？', kana: 'かしつきをかしていただけますか？', meaning: '可以借我加濕器嗎？' }, answer: { speaker: '店員', kanji: 'はい、お部屋へお届けします。', kana: 'はい、おへやへおとどけします。', meaning: '可以的，會幫您送到房間。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'このバスは空港に行きますか？', kana: 'このばすはくうこうにいきますか？', meaning: '這班公車有到機場嗎？' }, answer: { speaker: '運転手', kanji: 'はい、空港行きです。', kana: 'はい、くうこうゆきです。', meaning: '是的，是開往機場的。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '料金は先払いですか、後払いですか？', kana: 'りょうきんはさきばらいですか、あとばらいですか？', meaning: '車費是先付還是後付？' }, answer: { speaker: '運転手', kanji: '降りる時に後払いです。', kana: 'おりるときにあとばらいです。', meaning: '是下車時後付。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '浅草へ行きたいのですが、どの線に乗ればいいですか？', kana: 'あさくさへいきたいのですが、どのせんにのればいいですか？', meaning: '我想去淺草，應該搭哪條線？' }, answer: { speaker: '駅員', kanji: '銀座線に乗ってください。', kana: 'ぎんざせんにのってください。', meaning: '請搭乘銀座線。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '交通系ICカードは買えますか？', kana: 'こうつうけいあいしーかーどはかえますか？', meaning: '可以買交通IC卡嗎？' }, answer: { speaker: '駅員', kanji: '券売機でご購入いただけます。', kana: 'けんばいきでごこうにゅういただけます。', meaning: '您可以在售票機購買。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '次の駅は何ですか？', kana: 'つぎのえきはなんですか？', meaning: '下一站是哪裡？' }, answer: { speaker: '乗客', kanji: '次は渋谷、渋谷です。', kana: 'つぎはしぶや、しぶやです。', meaning: '下一站是澀谷、澀谷。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '空港までのバス停はどこですか？', kana: 'くうこうまでのばすていはどこですか？', meaning: '去機場的公車站在哪裡？' }, answer: { speaker: '店員', kanji: 'ホテルの目の前にあります。', kana: 'ほてるのめのまえにあります。', meaning: '就在飯店正前方。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'コインロッカーは空いていますか？', kana: 'こいんろっかーはあいていますか？', meaning: '投幣式置物櫃還有空的嗎？' }, answer: { speaker: '駅員', kanji: 'すみません、今はすべて使用中です。', kana: 'すみません、いまはすべてしようちゅうです。', meaning: '不好意思，現在全都在使用中。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'トイレに紙がありません。', kana: 'といれにかみがありません。', meaning: '廁所沒有衛生紙了。' }, answer: { speaker: '駅員', kanji: '申し訳ございません。すぐに補充します。', kana: 'もうしわけございません。すぐにほじゅうします。', meaning: '非常抱歉，馬上為您補充。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '大人2枚、子供1枚お願いします。', kana: 'おとなにまい、こどもいちまいおねがいします。', meaning: '請給我兩張全票，一張半票(兒童票)。' }, answer: { speaker: '店員', kanji: '全部で4500円になります。', kana: 'ぜんぶでよんせんごひゃくえんになります。', meaning: '總共是4500日圓。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'パンフレットをもらえますか？', kana: 'ぱんふれっとをもらえますか？', meaning: '可以拿一份導覽手冊嗎？' }, answer: { speaker: '店員', kanji: 'はい、ご自由にお取りください。', kana: 'はい、ごじゆうにおとりください。', meaning: '可以的，請自由索取。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '今日は何時まで開いていますか？', kana: 'きょうはなんじまであいていますか？', meaning: '今天開到幾點？' }, answer: { speaker: '店員', kanji: '本日は午後6時までの営業です。', kana: 'ほんじつはごごろくじまでのえいぎょうです。', meaning: '今天營業到下午6點。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'ここは写真を撮ってもいいですか？', kana: 'ここはしゃしんをとってもいいですか？', meaning: '這裡可以拍照嗎？' }, answer: { speaker: '店員', kanji: 'はい、フラッシュなしなら大丈夫です。', kana: 'はい、ふらっしゅなしならだいじょうぶです。', meaning: '可以，只要不開閃光燈就可以。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '入場料はいくらですか？', kana: 'にゅうじょうりょうはいくらですか？', meaning: '入場費是多少錢？' }, answer: { speaker: '店員', kanji: 'お一人様1000円です。', kana: 'おひとりさませんえんです。', meaning: '每位是1000日圓。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '日本語のツアーはありますか？', kana: 'にほんごのつあーはありますか？', meaning: '有日文導覽行程嗎？' }, answer: { speaker: '店員', kanji: 'はい、1時間ごとに案内しております。', kana: 'はい、いちじかんごトにあんないしております。', meaning: '有的，每小時都會有導覽。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: 'パスポートをなくしました。', kana: 'ぱすぽーとをなくしました。', meaning: '我弄丟了護照。' }, answer: { speaker: '店員', kanji: '警察に連絡しましょう。', kana: 'けいさつにれんらくしましょう。', meaning: '我們來聯絡警察吧。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '助けてくれてありがとうございます。', kana: 'たすけてくれてありがとうございます。', meaning: '謝謝你的幫忙。' }, answer: { speaker: '通行人', kanji: 'どういたしまして。気をつけてくださいね。', kana: 'どういたしまして。きをつけてくださいね。', meaning: '不客氣，請路上小心喔。' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '少し具合が悪いです。', kana: 'すこしぐあいがわるいです。', meaning: '我有點不舒服。' }, answer: { speaker: '店員', kanji: '大丈夫ですか？救急車を呼びましょうか？', kana: 'だいじょうぶですか？きゅうきゅうしゃをよびましょうか？', meaning: '您還好嗎？需要幫您叫救護車嗎？' } },
+      { type: 'conversation', level: '日常對話', question: { speaker: '自己', kanji: '日本語が話せなくてすみません。', kana: 'にほんごがはなせなくてすみません。', meaning: '抱歉，我不會說日文。' }, answer: { speaker: '店員', kanji: '大丈夫ですよ。英語で話しましょう。', kana: 'だいじょうぶですよ。えいごではなしましょう。', meaning: '沒關係喔，我們用英文說吧。' } }
     ];
 
-    // --- 2. 自動擴充邏輯 ---
-    const generateFullDatabase = () => {
-      const result = [];
-      ['N5', 'N4', 'N3', 'N2', 'N1'].forEach(level => {
-        const baseWords = baseWordDatabase.filter(w => w.level === level);
-        for (let i = 0; i < 300; i++) {
-          const base = baseWords[i % baseWords.length];
-          const isMock = i >= baseWords.length;
-          result.push({ ...base, id: `${level}-${i + 1}`, kanji: isMock ? `${base.kanji} ${i + 1}` : base.kanji, isMock });
-        }
-      });
-      ['食物', '設施', '交通'].forEach(level => {
-        const baseWords = baseTravelDatabase.filter(w => w.level === level);
-        for (let i = 0; i < 100; i++) {
-          const base = baseWords[i % baseWords.length];
-          const isMock = i >= baseWords.length;
-          result.push({ ...base, id: `travel-${level}-${i + 1}`, kanji: isMock ? `${base.kanji} ${i + 1}` : base.kanji, isMock });
-        }
-      });
-      for (let i = 0; i < 100; i++) {
-        const base = baseConversationDatabase[i % baseConversationDatabase.length];
-        const isMock = i >= baseConversationDatabase.length;
-        result.push({ ...base, id: `conv-${i + 1}`, question: { ...base.question, kanji: isMock ? `${base.question.kanji} (情境 ${i + 1})` : base.question.kanji }, isMock });
-      }
-      return result;
-    };
+    // 動態給予不重複的 ID
+    let idCounters = {};
+    const fullWordDatabase = rawDatabase.map(item => {
+      let cat = item.type === 'conversation' ? 'conv' : (['食物', '設施', '交通'].includes(item.level) ? `travel-${item.level}` : item.level);
+      idCounters[cat] = (idCounters[cat] || 0) + 1;
+      return { ...item, id: `${cat}-${idCounters[cat]}` };
+    });
 
-    const fullWordDatabase = generateFullDatabase();
-
-    // --- 3. 狀態與核心邏輯 ---
+    // --- 2. 狀態與核心邏輯 ---
     window.appState = {
       currentView: 'main_menu',
       favorites: JSON.parse(localStorage.getItem('jlpt_favorites') || '[]'),
@@ -152,14 +438,14 @@
         if (idx > -1) window.appState.favorites.splice(idx, 1);
         else window.appState.favorites.push(id);
         window.app.saveState();
-        window.app.render(); // 觸發重繪
+        window.app.render();
       },
       toggleLearned: (id) => {
         const idx = window.appState.learned.indexOf(id);
         if (idx > -1) window.appState.learned.splice(idx, 1);
         else window.appState.learned.push(id);
         window.app.saveState();
-        window.app.render(); // 觸發重繪
+        window.app.render();
       },
       toggleHideMeaning: () => {
         window.appState.hideMeaning = !window.appState.hideMeaning;
@@ -184,7 +470,7 @@
         }
       },
       
-      // --- 4. 渲染邏輯 ---
+      // --- 3. 渲染邏輯 ---
       render: () => {
         const state = window.appState;
         const mainEl = document.getElementById('app-main');
@@ -195,7 +481,6 @@
         const favBadge = document.getElementById('fav-badge');
         const navFavIcon = document.getElementById('nav-fav-icon');
 
-        // 更新標題與返回鍵
         const isMainMenu = state.currentView === 'main_menu';
         const isFavMenu = state.currentView === 'favorites';
         
@@ -210,7 +495,6 @@
           ? `<button onclick="window.app.goBack()" class="p-2 -ml-2 rounded-full hover:bg-blue-700 transition active:scale-95"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>`
           : '';
 
-        // 更新底部導覽列樣式
         const isHomeActive = ['main_menu', 'jlpt_menu', 'travel_menu', 'N5', 'N4', 'N3', 'N2', 'N1', '食物', '設施', '交通', '日常對話'].includes(state.currentView);
         
         navHome.className = `flex flex-col items-center justify-center w-full py-3 transition-colors ${isHomeActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`;
@@ -224,7 +508,6 @@
           favBadge.classList.add('hidden');
         }
 
-        // 生成主內容 HTML
         let html = '';
 
         if (state.currentView === 'main_menu') {
@@ -239,7 +522,7 @@
                 <button onclick="window.app.setView('jlpt_menu')" class="w-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6 rounded-2xl shadow-lg active:scale-[0.98] transition-transform text-left relative overflow-hidden">
                   <i data-lucide="book-open" class="w-20 h-20 absolute -right-6 -bottom-6 opacity-20 text-white"></i>
                   <h3 class="font-black text-2xl mb-2">日文檢定 (JLPT)</h3>
-                  <p class="text-blue-100 mb-4 text-sm">包含 N5 到 N1 必考核心單字，準備考試必備。</p>
+                  <p class="text-blue-100 mb-4 text-sm">精選 N5 到 N1 必考核心單字，準備考試必備。</p>
                   <div class="bg-white/20 inline-block px-4 py-2 rounded-full text-xs font-bold backdrop-blur-sm">開始測驗 →</div>
                 </button>
                 <button onclick="window.app.setView('travel_menu')" class="w-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-6 rounded-2xl shadow-lg active:scale-[0.98] transition-transform text-left relative overflow-hidden">
@@ -254,8 +537,9 @@
         else if (state.currentView === 'jlpt_menu') {
           html = `<div class="space-y-3 fade-in">`;
           ['N5', 'N4', 'N3', 'N2', 'N1'].forEach(level => {
+            const totalWords = fullWordDatabase.filter(w => w.level === level).length;
             const learnedCount = state.learned.filter(id => id.startsWith(`${level}-`)).length;
-            const progress = Math.round((learnedCount / 300) * 100);
+            const progress = totalWords > 0 ? Math.round((learnedCount / totalWords) * 100) : 0;
             html += `
               <button onclick="window.app.setView('${level}')" class="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 active:bg-slate-50 transition-all flex justify-between items-center group">
                 <div class="flex items-center gap-4 w-full">
@@ -265,7 +549,7 @@
                     <div class="w-full bg-slate-100 rounded-full h-1.5 mb-1">
                       <div class="bg-blue-500 h-1.5 rounded-full" style="width: ${progress}%"></div>
                     </div>
-                    <p class="text-xs text-slate-500">${learnedCount} / 300</p>
+                    <p class="text-xs text-slate-500">${learnedCount} / ${totalWords}</p>
                   </div>
                 </div>
                 <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 ml-2"></i>
@@ -275,15 +559,16 @@
         }
         else if (state.currentView === 'travel_menu') {
           const cats = [
-            { id: '食物', icon: 'utensils', color: 'text-orange-600', bg: 'bg-orange-100', count: 100, prefix: 'travel-食物-' },
-            { id: '設施', icon: 'building', color: 'text-purple-600', bg: 'bg-purple-100', count: 100, prefix: 'travel-設施-' },
-            { id: '交通', icon: 'train', color: 'text-sky-600', bg: 'bg-sky-100', count: 100, prefix: 'travel-交通-' },
-            { id: '日常對話', icon: 'message-circle', color: 'text-rose-600', bg: 'bg-rose-100', count: 100, prefix: 'conv-' }
+            { id: '食物', icon: 'utensils', color: 'text-orange-600', bg: 'bg-orange-100', prefix: 'travel-食物' },
+            { id: '設施', icon: 'building', color: 'text-purple-600', bg: 'bg-purple-100', prefix: 'travel-設施' },
+            { id: '交通', icon: 'train', color: 'text-sky-600', bg: 'bg-sky-100', prefix: 'travel-交通' },
+            { id: '日常對話', icon: 'message-circle', color: 'text-rose-600', bg: 'bg-rose-100', prefix: 'conv' }
           ];
           html = `<div class="space-y-3 fade-in">`;
           cats.forEach(cat => {
-            const learnedCount = state.learned.filter(id => id.startsWith(cat.prefix)).length;
-            const progress = Math.round((learnedCount / cat.count) * 100);
+            const totalWords = fullWordDatabase.filter(w => w.id.startsWith(cat.prefix)).length;
+            const learnedCount = state.learned.filter(id => id.startsWith(`${cat.prefix}-`)).length;
+            const progress = totalWords > 0 ? Math.round((learnedCount / totalWords) * 100) : 0;
             html += `
               <button onclick="window.app.setView('${cat.id}')" class="w-full bg-white p-4 rounded-xl shadow-sm border border-slate-200 active:bg-slate-50 transition-all flex justify-between items-center group">
                 <div class="flex items-center gap-4 w-full">
@@ -293,7 +578,7 @@
                     <div class="w-full bg-slate-100 rounded-full h-1.5 mb-1">
                       <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${progress}%"></div>
                     </div>
-                    <p class="text-xs text-slate-500">${learnedCount} / ${cat.count}</p>
+                    <p class="text-xs text-slate-500">${learnedCount} / ${totalWords}</p>
                   </div>
                 </div>
                 <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 ml-2"></i>
@@ -302,7 +587,6 @@
           html += `</div>`;
         }
         else {
-          // 列表視圖 (單字或對話)
           let displayWords = state.currentView === 'favorites' 
             ? fullWordDatabase.filter(w => state.favorites.includes(w.id))
             : fullWordDatabase.filter(w => w.level === state.currentView);
@@ -331,7 +615,7 @@
               <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center mt-10">
                 <i data-lucide="star" class="w-14 h-14 mx-auto text-slate-300 mb-4"></i>
                 <h3 class="text-lg font-bold text-slate-700 mb-2">單字庫空空如也</h3>
-                <p class="text-slate-500 text-sm leading-relaxed">在學習時點擊卡片右上角的「星星」，就可以將不會的內容收藏到這裡隨時複習喔！</p>
+                <p class="text-slate-500 text-sm leading-relaxed">在學習時点擊卡片右上角的「星星」，就可以將不會的內容收藏到這裡隨時複習喔！</p>
                 <button onclick="window.app.setView('main_menu')" class="mt-6 bg-blue-50 text-blue-600 px-6 py-2 rounded-full font-bold text-sm">
                   去背單字
                 </button>
@@ -342,6 +626,7 @@
               const isLearned = state.learned.includes(word.id);
               const isFav = state.favorites.includes(word.id);
               
+              // 這裡修正了先前 Tailwind CSS 的缺字小錯誤
               const learnedColor = isLearned ? 'text-emerald-500 scale-110' : 'text-slate-300';
               const learnedFill = isLearned ? 'fill-emerald-500 text-white' : '';
               
@@ -394,7 +679,6 @@
                     </div>
                   </div>`;
               } else {
-                const bgClass = word.isMock ? 'bg-slate-50' : 'bg-gradient-to-br from-white to-blue-50/50';
                 let examplesHtml = '';
                 word.examples.forEach(ex => {
                   examplesHtml += `
@@ -409,7 +693,7 @@
 
                 html += `
                   <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
-                    <div class="p-4 pb-3 border-b border-slate-100 flex justify-between items-start ${bgClass}">
+                    <div class="p-4 pb-3 border-b border-slate-100 flex justify-between items-start bg-gradient-to-br from-white to-blue-50/50">
                       <div>
                         <div class="text-blue-500 font-medium text-xs mb-1">${word.kana}</div>
                         <div class="flex items-center gap-2 mb-2">
@@ -444,13 +728,10 @@
         }
 
         mainEl.innerHTML = html;
-        
-        // 重新繪製 Lucide 圖標
         lucide.createIcons();
       }
     };
 
-    // --- 5. 初始化 App ---
     document.addEventListener("DOMContentLoaded", () => {
       window.app.render();
     });
